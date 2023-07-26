@@ -128,6 +128,18 @@ func (s *TestSuite) TestNamespaceMethods(c *C) {
 		testCaseSync(c),
 		testCaseGetOSDistro(c),
 		testCaseGetSystemBlockDevices(c),
+		testCaseCopyDirectory(c),
+		testCaseCreateDirectory(c),
+		testCaseDeleteDirectory(c),
+		testCaseReadDirectory(c),
+		testCaseCopyFiles(c),
+		testCaseGetEmptyFiles(c),
+		testCaseGetFileInfo(c),
+		testCaseReadFileContent(c),
+		testCaseSyncFile(c),
+		testCaseWriteFile(c),
+		testCaseDeletePath(c),
+		testCaseGetDiskStat(c),
 	}
 	testCases := make(map[string]testCaseNamespaceMethods)
 	for _, testMethod := range testMethods {
