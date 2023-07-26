@@ -1,6 +1,10 @@
 package types
 
-import ()
+import (
+	"time"
+)
+
+var FileLockDefaultTimeout = 24 * time.Hour
 
 type DiskStat struct {
 	DiskID           string
