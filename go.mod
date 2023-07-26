@@ -4,6 +4,7 @@ go 1.21
 
 require (
 	github.com/c9s/goprocinfo v0.0.0-20210130143923-c95fcf8c64a8
+	github.com/google/uuid v1.3.0
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil/v3 v3.23.7
 	github.com/sirupsen/logrus v1.9.3
