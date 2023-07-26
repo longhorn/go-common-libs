@@ -123,7 +123,12 @@ func runNamespaceMethodTest(c *C, testName string, testCase testCaseNamespaceMet
 }
 
 func (s *TestSuite) TestNamespaceMethods(c *C) {
-	testMethods := []map[string]testCaseNamespaceMethods{}
+	testMethods := []map[string]testCaseNamespaceMethods{
+		testCaseKernelRelease(c),
+		testCaseSync(c),
+		testCaseGetOSDistro(c),
+		testCaseGetSystemBlockDevices(c),
+	}
 	testCases := make(map[string]testCaseNamespaceMethods)
 	for _, testMethod := range testMethods {
 		for testName, testCase := range testMethod {
