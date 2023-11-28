@@ -13,7 +13,6 @@ import (
 func (s *TestSuite) TestGetBaseProcessName(c *C) {
 	defer func() {
 		NewJoiner = newJoiner
-		types.CachedOSDistro = ""
 	}()
 
 	type testCase struct {
@@ -49,7 +48,5 @@ func (s *TestSuite) TestGetBaseProcessName(c *C) {
 
 		process := GetDefaultProcessName()
 		c.Assert(process, Equals, testCase.expectedProcess, Commentf(TestErrResultFmt, testName))
-
-		types.CachedOSDistro = ""
 	}
 }

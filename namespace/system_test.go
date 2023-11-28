@@ -49,7 +49,6 @@ func testCaseGetOSDistro(c *C) map[string]testCaseNamespaceMethods {
 			method: func(args ...interface{}) (interface{}, error) {
 				return GetOSDistro()
 			},
-			methodPostAction: func() { types.CachedOSDistro = "" },
 			mockResult: `VERSION="15-SP3"
 VERSION_ID="15.3"
 PRETTY_NAME="SUSE Linux Enterprise Server 15 SP3"
