@@ -4,7 +4,6 @@ import (
 	"syscall"
 
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 
 	"github.com/longhorn/go-common-libs/types"
 	"github.com/longhorn/go-common-libs/utils"
@@ -40,11 +39,6 @@ func GetOSDistro() (result string, err error) {
 	defer func() {
 		err = errors.Wrapf(err, "failed to get host OS distro")
 	}()
-
-	if types.CachedOSDistro != "" {
-		logrus.Tracef("Found cached OS distro: %v", types.CachedOSDistro)
-		return types.CachedOSDistro, nil
-	}
 
 	fn := func() (interface{}, error) {
 		return utils.ReadFileContent(types.OsReleaseFilePath)

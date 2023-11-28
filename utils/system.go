@@ -40,18 +40,13 @@ func GetOSDistro(osReleaseContent string) (string, error) {
 		err = errors.Wrapf(err, "failed to get host OS distro")
 	}()
 
-	if types.CachedOSDistro != "" {
-		logrus.Tracef("Cached OS distro: %v", types.CachedOSDistro)
-		return types.CachedOSDistro, nil
-	}
-
 	lines := strings.Split(osReleaseContent, "\n")
 	for _, line := range lines {
 		if strings.HasPrefix(line, "ID=") {
 			id := strings.TrimPrefix(line, "ID=")
 			id = strings.Trim(id, `"`)
-			types.CachedOSDistro = id
-			return GetOSDistro("")
+			logrus.Tracef("Found OS distro: %v", id)
+			return id, nil
 		}
 	}
 

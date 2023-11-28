@@ -27,10 +27,6 @@ func (s *TestSuite) TestGetKernelRelease(c *C) {
 
 // TestGetHostOSDistro tests the success cases of GetHostOSDistro
 func (s *TestSuite) TestGetHostOSDistro(c *C) {
-	defer func() {
-		types.CachedOSDistro = ""
-	}()
-
 	type testCase struct {
 		mockFileContent string
 
