@@ -2,6 +2,8 @@ package utils
 
 import (
 	. "gopkg.in/check.v1"
+
+	"github.com/longhorn/go-common-libs/test"
 )
 
 func (s *TestSuite) TestContains(c *C) {
@@ -47,7 +49,7 @@ func (s *TestSuite) TestContains(c *C) {
 		c.Logf("testing utils.%v", testName)
 
 		result := Contains(testCase.inputSlice, testCase.inputValue)
-		c.Assert(result, Equals, testCase.expected, Commentf(TestErrResultFmt, testName))
+		c.Assert(result, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
 	}
 }
 
@@ -71,7 +73,7 @@ func (s *TestSuite) TestGetFunctionName(c *C) {
 		c.Logf("testing utils.%v", testName)
 
 		result := GetFunctionName(testCase.inputFunction)
-		c.Assert(result, Equals, testCase.expected, Commentf(TestErrResultFmt, testName))
+		c.Assert(result, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
 	}
 }
 
@@ -95,7 +97,7 @@ func (s *TestSuite) TestGetFunctionPath(c *C) {
 		c.Logf("testing utils.%v", testName)
 
 		result := GetFunctionPath(testCase.inputFunction)
-		c.Assert(result, Equals, testCase.expected, Commentf(TestErrResultFmt, testName))
+		c.Assert(result, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
 	}
 }
 
@@ -127,7 +129,7 @@ func (s *TestSuite) TestIsStringInSlice(c *C) {
 		c.Logf("testing utils.%v", testName)
 
 		result := IsStringInSlice(testCase.inputList, testCase.inputItem)
-		c.Assert(result, Equals, testCase.expected, Commentf(TestErrResultFmt, testName))
+		c.Assert(result, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
 	}
 }
 
@@ -155,6 +157,6 @@ func (s *TestSuite) TestRandomID(c *C) {
 		c.Logf("testing utils.%v", testName)
 
 		result := RandomID(testCase.idLength)
-		c.Assert(len(result), Equals, testCase.expectedLength, Commentf(TestErrResultFmt, testName))
+		c.Assert(len(result), Equals, testCase.expectedLength, Commentf(test.ErrResultFmt, testName))
 	}
 }
