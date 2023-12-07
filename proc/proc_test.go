@@ -91,6 +91,13 @@ func (s *TestSuite) TestGetProcessAncestorNamespaceDirectory(c *C) {
 		}
 
 		c.Assert(result, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
+
+		ps, err := FindProcessByCmdline(testCase.process)
+		c.Assert(err, IsNil)
+		c.Assert(len(ps), Equals, 1)
+		if len(ps) > 0 {
+			c.Assert(result, Equals, fmt.Sprintf("/proc/%d/ns", ps[0].Pid), Commentf(test.ErrResultFmt, testName))
+		}
 	}
 }
 
