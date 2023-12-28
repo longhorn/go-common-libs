@@ -2,8 +2,9 @@ FROM registry.suse.com/bci/bci-base:15.5
 
 ARG DAPPER_HOST_ARCH=amd64
 ENV ARCH=${DAPPER_HOST_ARCH}
+ENV PROTOBUF_VER=24.3
 
-RUN zypper -n install gcc gzip tar wget git && \
+RUN zypper -n install gcc gzip tar wget unzip git  && \
     rm -f /bin/sh && ln -s /bin/bash /bin/sh  && \
     rm -rf /var/cache/zypp/*
 
@@ -13,6 +14,26 @@ ENV GOLANG_ARCH_amd64=amd64 GOLANG_ARCH_arm64=arm64 GOLANG_ARCH_s390x=s390x GOLA
 RUN wget -O - https://storage.googleapis.com/golang/go1.20.3.linux-${!GOLANG_ARCH}.tar.gz | tar -xzf - -C /usr/local
 RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.55.2
 
+# protoc
+ENV PROTOC_amd64=https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VER}/protoc-${PROTOBUF_VER}-linux-x86_64.zip \
+	PROTOC_arm64=https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VER}/protoc-${PROTOBUF_VER}-linux-aarch_64.zip \
+	PROTOC_s390x=https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VER}/protoc-${PROTOBUF_VER}-linux-s390_64.zip \
+	PROTOC=PROTOC_${ARCH}
+
+RUN cd /usr/src && \
+	wget ${!PROTOC} -O protoc_${ARCH}.zip && \
+    unzip protoc_${ARCH}.zip -d /usr/local/
+
+# protoc-gen-go
+RUN mkdir -p /go/src/github.com/golang && \
+    cd /go/src/github.com/golang && \
+    git clone https://github.com/golang/protobuf.git && \
+    cd protobuf && \
+    git checkout v1.5.3 && \
+    cd protoc-gen-go && \
+    go build && \
+    cp protoc-gen-go /usr/local/bin
+
 ENV DAPPER_RUN_ARGS --privileged
 ENV DAPPER_ENV REPO TAG DRONE_TAG DRONE_REPO DRONE_PULL_REQUEST DRONE_COMMIT_REF
 ENV DAPPER_SOURCE /go/src/github.com/longhorn/go-common-libs/
@@ -20,5 +41,6 @@ ENV DAPPER_OUTPUT coverage.out
 ENV DAPPER_DOCKER_SOCKET true
 
 WORKDIR ${DAPPER_SOURCE}
+ENV DAPPER_OUTPUT ./grpc
 ENTRYPOINT ["./scripts/entry"]
 CMD ["ci"]
