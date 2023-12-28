@@ -6,7 +6,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"time"
 
@@ -565,7 +564,14 @@ func (s *TestSuite) TestGetDiskStat(c *C) {
 		expectedDiskStat, err := getDiskStat(testDir)
 		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
 
-		c.Assert(reflect.DeepEqual(diskStat, *expectedDiskStat), Equals, true)
+		// On the running system, FreeBlocks/StorageAvailable might be changing with time.
+		// so we only compare the following fields
+		c.Assert(diskStat.DiskID, Equals, expectedDiskStat.DiskID)
+		c.Assert(diskStat.Path, Equals, expectedDiskStat.Path)
+		c.Assert(diskStat.Type, Equals, expectedDiskStat.Type)
+		c.Assert(diskStat.TotalBlocks, Equals, expectedDiskStat.TotalBlocks)
+		c.Assert(diskStat.BlockSize, Equals, expectedDiskStat.BlockSize)
+		c.Assert(diskStat.StorageMaximum, Equals, expectedDiskStat.StorageMaximum)
 	}
 }
 
