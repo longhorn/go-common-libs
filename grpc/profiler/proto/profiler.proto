@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+option go_package = "profiler/proto";
+package longhorn.grpc.profiler;
+
+enum Op {
+  SHOW = 0;
+  ENABLE = 1;
+  DISABLE = 2;
+}
+
+message ProfilerOPRequest {
+  Op request_op = 1;
+  int32 port_number = 2;
+}
+
+message ProfilerOPResponse {
+  string profiler_addr = 1;
+}
+
+service Profiler {
+  rpc ProfilerOP(ProfilerOPRequest) returns (ProfilerOPResponse) {}
+}
