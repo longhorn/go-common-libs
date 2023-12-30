@@ -3,7 +3,7 @@ FROM registry.suse.com/bci/bci-base:15.5
 ARG DAPPER_HOST_ARCH=amd64
 ENV ARCH=${DAPPER_HOST_ARCH}
 
-RUN zypper -n install gcc gzip tar wget  && \
+RUN zypper -n install gcc gzip tar wget git && \
     rm -f /bin/sh && ln -s /bin/bash /bin/sh  && \
     rm -rf /var/cache/zypp/*
 

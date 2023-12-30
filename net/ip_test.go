@@ -1,4 +1,4 @@
-package utils
+package net
 
 import (
 	"net"
@@ -9,11 +9,12 @@ import (
 	"github.com/longhorn/go-common-libs/test"
 )
 
-func (s *TestSuite) GetIsLoopbackHost(c *C) {
+func (s *TestSuite) TestIsLoopbackHost(c *C) {
 	type testCase struct {
 		host     string
 		expected bool
 	}
+
 	testCases := map[string]testCase{
 		"IsLoopbackHost(...): localhost": {
 			host:     "localhost",
@@ -40,6 +41,7 @@ func (s *TestSuite) GetIsLoopbackHost(c *C) {
 			expected: false,
 		},
 	}
+
 	for testName, testCase := range testCases {
 		c.Logf("testing utils.%v", testName)
 
@@ -53,12 +55,14 @@ func (s *TestSuite) TestGetLocalIPv4fromInterface(c *C) {
 		host     string
 		expected bool
 	}
+
 	testCases := map[string]testCase{
 		"GetLocalIPv4fromInterface(...):": {
 			host:     "",
 			expected: true,
 		},
 	}
+
 	for testName := range testCases {
 		c.Logf("testing utils.%v", testName)
 
@@ -72,6 +76,7 @@ func (s *TestSuite) TestGetLocalIPv4fromInterface(c *C) {
 					Equals, true, Commentf(test.ErrResultFmt, testName))
 				continue
 			}
+
 			c.Assert(isIPv4(ip), Equals, true, Commentf(test.ErrResultFmt, testName))
 		}
 	}
@@ -82,16 +87,19 @@ func (s *TestSuite) TestGetAnyExternalIP(c *C) {
 		host     string
 		expected bool
 	}
+
 	testCases := map[string]testCase{
 		"GetLocalIPv4fromInterface(...):": {
 			host:     "",
 			expected: true,
 		},
 	}
+
 	for testName := range testCases {
 		c.Logf("testing utils.%v", testName)
 
 		ip, err := GetAnyExternalIP()
+
 		c.Assert(err, IsNil)
 		c.Assert(isIPv4(ip), Equals, true, Commentf(test.ErrResultFmt, testName))
 	}
