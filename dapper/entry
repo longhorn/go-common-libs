@@ -1,0 +1,10 @@
+#!/bin/bash
+set -e
+
+if [ -e ./dapper/"$1" ]; then
+  ./dapper/"$@"
+else
+  exec "$@"
+fi
+
+chown -R "$DAPPER_UID":"$DAPPER_GID" .

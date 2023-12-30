@@ -1,19 +1,18 @@
-TARGETS := $(shell ls scripts)
+TARGETS := $(shell ls dapper)
+
+.DEFAULT_GOAL := ci
+
+.PHONY: $(TARGETS)
 
 .dapper:
 	@echo Downloading dapper
-	@curl -sL https://releases.rancher.com/dapper/latest/dapper-`uname -s`-`uname -m` > .dapper.tmp
-	@@chmod +x .dapper.tmp
-	@./.dapper.tmp -v
-	@mv .dapper.tmp .dapper
+	@curl -sSfL https://releases.rancher.com/dapper/latest/dapper-`uname -s`-`uname -m` > .dapper
+	@chmod +x .dapper
+	@./.dapper -v
 
 $(TARGETS): .dapper
 	./.dapper $@
 
 deps: .dapper
-	./.dapper -m bind env GO111MODULE=on go mod vendor
-	./.dapper -m bind chown -R $$(id -u) vendor dist bin go.mod go.sum .cache
-
-.DEFAULT_GOAL := ci
-
-.PHONY: $(TARGETS)
+	./.dapper -d -m bind go mod vendor
+	./.dapper -d -m bind chown -R $$(id -u) vendor go.mod go.sum

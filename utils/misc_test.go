@@ -161,40 +161,40 @@ func (s *TestSuite) TestRandomID(c *C) {
 	}
 }
 
-func (s TestSuite) TestGenRandNumber(c *C) {
+func (s TestSuite) TestGenerateRandomNumber(c *C) {
 	type testCase struct {
 		inputLower int64
 		inputUpper int64
 
-		expect_success bool
-		ret_range      []int64
+		expectSuccess bool
+		retRange      []int64
 	}
 	testCases := map[string]testCase{
-		"GenRandNumber(...)": {
-			inputLower:     0,
-			inputUpper:     10,
-			expect_success: true,
-			ret_range:      []int64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+		"GenerateRandomNumber(...)": {
+			inputLower:    0,
+			inputUpper:    10,
+			expectSuccess: true,
+			retRange:      []int64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 		},
-		"GenRandNumber(...): min > max": {
-			inputLower:     10,
-			inputUpper:     0,
-			expect_success: false,
+		"GenerateRandomNumber(...): min > max": {
+			inputLower:    10,
+			inputUpper:    0,
+			expectSuccess: false,
 		},
-		"GenRandNumber(...): min == max": {
-			inputLower:     10,
-			inputUpper:     10,
-			expect_success: true,
-			ret_range:      []int64{10},
+		"GenerateRandomNumber(...): min == max": {
+			inputLower:    10,
+			inputUpper:    10,
+			expectSuccess: true,
+			retRange:      []int64{10},
 		},
 	}
 	for testName, testCase := range testCases {
 		c.Logf("testing utils.%v", testName)
 
 		result, err := GenerateRandomNumber(testCase.inputLower, testCase.inputUpper)
-		if testCase.expect_success {
+		if testCase.expectSuccess {
 			c.Assert(err, IsNil, Commentf(test.ErrResultFmt, testName))
-			c.Assert(result, test.IsInList, testCase.ret_range, Commentf(test.ErrResultFmt, testName))
+			c.Assert(result, test.IsInList, testCase.retRange, Commentf(test.ErrResultFmt, testName))
 		} else {
 			c.Assert(err, NotNil, Commentf(test.ErrResultFmt, testName))
 		}
