@@ -1,7 +1,7 @@
 syntax = "proto3";
 
-option go_package = "profiler/proto";
-package longhorn.grpc.profiler;
+option go_package = "github.com/longhorn/go-common-libs/generated/profilerpb";
+package longhorn.common.profiler;
 
 enum Op {
   SHOW = 0;

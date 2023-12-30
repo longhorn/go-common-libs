@@ -1,4 +1,5 @@
 *.test
 .dapper
 coverage.out
+Dockerfile.dapper*
 

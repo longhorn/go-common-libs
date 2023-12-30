@@ -80,8 +80,8 @@ func UUID() string {
 	return uuid.New().String()
 }
 
-// GenRandNumber generates a random positive number between lower and upper.
-// The return value should be [lower, upper) and error is nil when success.
+// GenerateRandomNumber generates a random positive number between lower and upper.
+// The return value should be between [lower, upper), and error is nil when success.
 // If the error is not nil, the return value is 0.
 func GenerateRandomNumber(lower, upper int64) (int64, error) {
 	if lower > upper {

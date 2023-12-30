@@ -4,8 +4,12 @@ import (
 	"fmt"
 	"reflect"
 
-	check "gopkg.in/check.v1"
+	"gopkg.in/check.v1"
 )
+
+type isInListChecker struct {
+	*check.CheckerInfo
+}
 
 // isInListChecker verifies if an element is present in the provided list.
 // The list must be a slice or array, and the element must be the same type as the list.
@@ -15,10 +19,6 @@ import (
 //     c.Assert("b", IsInList, []string{"a", "b", "c"})
 //     c.Assert(2, IsInList, []int{1, 2, 3})
 //
-
-type isInListChecker struct {
-	*check.CheckerInfo
-}
 
 var IsInList check.Checker = &isInListChecker{
 	&check.CheckerInfo{
@@ -40,11 +40,11 @@ func (checker *isInListChecker) Check(params []interface{}, names []string) (res
 
 	valueOfList := reflect.ValueOf(list)
 	if valueOfList.Kind() != reflect.Slice && valueOfList.Kind() != reflect.Array {
-		return false, fmt.Sprintf("container must be a slice or array, got %T", valueOfList.Type())
+		return false, fmt.Sprintf("list must be a slice or array, got %T", valueOfList.Type())
 	}
 
 	if valueOfList.Len() == 0 {
-		return false, "container should not be empty"
+		return false, "list should not be empty"
 	}
 
 	for i := 0; i < valueOfList.Len(); i++ {

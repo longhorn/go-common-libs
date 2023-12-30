@@ -1,4 +1,4 @@
-package grpc
+package profiler
 
 import (
 	"testing"
