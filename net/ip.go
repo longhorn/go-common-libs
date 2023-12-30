@@ -1,4 +1,4 @@
-package utils
+package net
 
 import (
 	"fmt"
@@ -15,7 +15,7 @@ const (
 	StorageNetworkInterface = "lhnet1"
 )
 
-// GetLocalIPv4 returns the local IPv4 address.
+// GetLocalIPv4fromInterface returns the local IPv4 address.
 func GetLocalIPv4fromInterface(name string) (ip string, err error) {
 	iface, err := net.InterfaceByName(name)
 	if err != nil {
@@ -40,7 +40,7 @@ func GetLocalIPv4fromInterface(name string) (ip string, err error) {
 	return ipv4.String(), nil
 }
 
-// // GetIPForPod returns the IP address for the pod from the storage network first or the cluster network.
+// GetIPForPod returns the IP address for the pod from the storage network first or the cluster network.
 func GetIPForPod() (ip string, err error) {
 	var storageIP string
 	if ip, err := GetLocalIPv4fromInterface(StorageNetworkInterface); err != nil {
@@ -50,9 +50,11 @@ func GetIPForPod() (ip string, err error) {
 	} else {
 		storageIP = ip
 	}
+
 	if storageIP == "" {
 		return "", fmt.Errorf("can't get a ip from either the specified interface or the environment variable")
 	}
+
 	return storageIP, nil
 }
 
@@ -66,11 +68,13 @@ func IsLoopbackHost(host string) bool {
 	if err != nil {
 		return false
 	}
+
 	for _, ip := range ips {
 		if !ip.IsLoopback() {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -80,17 +84,21 @@ func GetAnyExternalIP() (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	for _, iface := range ifaces {
 		if iface.Flags&net.FlagUp == 0 {
 			continue // interface down
 		}
+
 		if iface.Flags&net.FlagLoopback != 0 {
 			continue // loopback interface
 		}
+
 		addrs, err := iface.Addrs()
 		if err != nil {
 			return "", err
 		}
+
 		for _, addr := range addrs {
 			var ip net.IP
 			switch v := addr.(type) {
@@ -109,5 +117,6 @@ func GetAnyExternalIP() (string, error) {
 			return ip.String(), nil
 		}
 	}
+
 	return "", fmt.Errorf("the current host is probably not connected to the network")
 }
