@@ -94,7 +94,7 @@ func getSystemBlockDeviceInfo(readDirFn func(string) ([]os.DirEntry, error), rea
 					"device":          deviceName,
 					"primaryPath":     devicePath,
 					"alternativePath": alternativeDevicePath,
-				}).WithError(errs).WithError(altErr).Debugf("failed to find dev file in either primary or alternative path")
+				}).WithError(errs).Debugf("failed to find dev file in either primary or alternative path")
 				continue
 			}
 
