@@ -222,7 +222,11 @@ func (s *Server) DisableProfiler() (string, error) {
 // ProfilerOP will call the doProfilerOP for the ProfilerServer.
 // It will convert the hunam readable op to internal usage and is the entry point for the profiler operations.
 func (c *Client) ProfilerOP(op string, portNumber int32) (string, error) {
-	return c.doProfilerOP(profilerpb.Op(profilerpb.Op_value[op]), portNumber)
+	opValue, exists := profilerpb.Op_value[op]
+	if !exists {
+		return "", fmt.Errorf("invalid operation: %v", op)
+	}
+	return c.doProfilerOP(profilerpb.Op(opValue), portNumber)
 }
 
 // doProfilerOP is the internal function to call the ProfilerOP for the ProfilerServer.

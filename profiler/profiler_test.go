@@ -16,6 +16,12 @@ import (
 	"github.com/longhorn/go-common-libs/utils"
 )
 
+const (
+	opSHOW    = "SHOW"
+	opENABLE  = "ENABLE"
+	opDISABLE = "DISABLE"
+)
+
 func (s TestSuite) TestProfilerServiceOperations(c *C) {
 	type testCase struct {
 		op         string
@@ -26,19 +32,19 @@ func (s TestSuite) TestProfilerServiceOperations(c *C) {
 
 	testCases := map[string]testCase{
 		"ProfilerOP(...): show": {
-			op:         "show",
+			op:         opSHOW,
 			portNumber: 0,
 			expectRet:  true,
 		},
-		"ProfilerOP(...): enable": {
-			op:         "enable",
+		"ProfilerOP(...): enable/disable": {
+			op:         opENABLE,
 			portNumber: 55555,
 			expectRet:  true,
 		},
-		"ProfilerOP(...): disable": {
-			op:         "disable",
+		"ProfilerOP(...): invalidate op": {
+			op:         "INVALID",
 			portNumber: 0,
-			expectRet:  true,
+			expectRet:  false,
 		},
 	}
 
@@ -54,9 +60,39 @@ func (s TestSuite) TestProfilerServiceOperations(c *C) {
 	for testName, testCase := range testCases {
 		c.Logf("testing grpc.%v", testName)
 
+		if testCase.expectRet == false {
+			_, err := client.ProfilerOP(testCase.op, testCase.portNumber)
+			c.Assert(err, NotNil, Commentf(test.ErrResultFmt, testName))
+			continue
+		}
+
 		_, err := client.ProfilerOP(testCase.op, testCase.portNumber)
 		c.Assert(err, IsNil, Commentf(test.ErrResultFmt, testName))
+
+		// test the Op_ENABLE we should also test the Op_DISABLE
+		if testCase.op == opENABLE {
+			c.Assert(connected(testCase.portNumber), Equals, true, Commentf(test.ErrResultFmt, testName))
+			// Then, we disable it.
+			_, err := client.ProfilerOP(opDISABLE, testCase.portNumber)
+			c.Assert(err, IsNil, Commentf(test.ErrResultFmt, testName))
+			c.Assert(connected(testCase.portNumber), Equals, false, Commentf(test.ErrResultFmt, testName))
+		}
 	}
+}
+
+func connected(port int32) bool {
+	targetAddr := fmt.Sprintf(":%d", port)
+	retryCount := 3
+	connected := false
+	for i := 0; i < retryCount; i++ {
+		conn, err := net.DialTimeout("tcp", targetAddr, 1*time.Second)
+		if err == nil {
+			connected = true
+			_ = conn.Close()
+			break
+		}
+	}
+	return connected
 }
 
 // start server and return client
