@@ -3,6 +3,7 @@ package sys
 import (
 	"io/fs"
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -85,6 +86,11 @@ ID_LIKE="suse"`,
 }
 
 func (s *TestSuite) TestGetSystemBlockDevices(c *C) {
+	fakeDir := fake.CreateTempDirectory("", c)
+	defer func() {
+		_ = os.RemoveAll(fakeDir)
+	}()
+
 	type testCase struct {
 		mockDirEntries []os.DirEntry
 		mockData       []byte
@@ -122,7 +128,20 @@ func (s *TestSuite) TestGetSystemBlockDevices(c *C) {
 			Data:       testCase.mockData,
 		}
 
-		result, err := getSystemBlockDeviceInfo(fakeFS.ReadDir, fakeFS.ReadFile)
+		for _, entry := range testCase.mockDirEntries {
+			// Create device directory
+			deviceDir := filepath.Join(fakeDir, entry.Name())
+			err := os.MkdirAll(deviceDir, 0755)
+			c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
+
+			// Create device file
+			devicePath := filepath.Join(deviceDir, "dev")
+			deviceFile, err := os.Create(devicePath)
+			deviceFile.Close()
+			c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
+		}
+
+		result, err := getSystemBlockDeviceInfo(fakeDir, fakeFS.ReadDir, fakeFS.ReadFile)
 		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
 		c.Assert(reflect.DeepEqual(result, testCase.expected), Equals, true, Commentf(test.ErrResultFmt, testName))
 	}
