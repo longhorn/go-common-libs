@@ -151,7 +151,7 @@ func (s *Server) EnableProfiler(portNumber int32) (string, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	logrus.Info("Prepareing to enable the profiler")
+	logrus.Info("Preparing to enable the profiler")
 
 	if s.server != nil {
 		return "", fmt.Errorf("profiler server is already running at %v", s.server.Addr)
