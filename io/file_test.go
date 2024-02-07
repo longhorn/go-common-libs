@@ -606,6 +606,7 @@ func getDiskStat(path string) (*types.DiskStat, error) {
 		DiskID:           fsStat.Fsid,
 		Path:             fsStat.Path,
 		Type:             fsStat.Type,
+		Driver:           types.DiskDriverNone,
 		FreeBlocks:       fsStat.FreeBlock,
 		TotalBlocks:      fsStat.TotalBlock,
 		BlockSize:        fsStat.BlockSize,
