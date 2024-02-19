@@ -93,3 +93,28 @@ func (s *TestSuite) TestExecuteWithStdinPipe(c *C) {
 		c.Assert(output, Equals, "output")
 	}
 }
+
+func (s *TestSuite) TestExecuteWithEnvs(c *C) {
+	type testCase struct {
+		timeout time.Duration
+	}
+	testCases := map[string]testCase{
+		"Execute(...)": {
+			timeout: types.ExecuteNoTimeout,
+		},
+		"Execute(...): with namespace": {
+			timeout: types.ExecuteNoTimeout,
+		},
+	}
+	for testName := range testCases {
+		c.Logf("testing namespace.%v", testName)
+
+		namespaces := []types.Namespace{}
+		nsexec, err := NewNamespaceExecutor(types.ProcessNone, types.HostProcDirectory, namespaces)
+		c.Assert(err, IsNil)
+
+		output, err := nsexec.Execute([]string{"K1=V1", "K2=V2"}, "env", nil, types.ExecuteDefaultTimeout)
+		c.Assert(err, IsNil)
+		c.Assert(output, Equals, "K1=V1\nK2=V2\n")
+	}
+}
