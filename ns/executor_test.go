@@ -29,7 +29,7 @@ func (s *TestSuite) TestExecute(c *C) {
 		nsexec.nsDirectory = testCase.nsDirectory
 		nsexec.executor = &fake.Executor{}
 
-		output, err := nsexec.Execute("binary", []string{"arg1", "arg2"}, types.ExecuteDefaultTimeout)
+		output, err := nsexec.Execute(nil, "binary", []string{"arg1", "arg2"}, types.ExecuteDefaultTimeout)
 		c.Assert(err, IsNil)
 		c.Assert(output, Equals, "output")
 	}
@@ -62,7 +62,7 @@ func (s *TestSuite) TestExecuteWithTimeout(c *C) {
 
 		nsexec.executor = &fake.Executor{}
 
-		output, err := nsexec.Execute("binary", []string{"arg1", "arg2"}, testCase.timeout)
+		output, err := nsexec.Execute(nil, "binary", []string{"arg1", "arg2"}, testCase.timeout)
 		c.Assert(err, IsNil)
 		c.Assert(output, Equals, "output")
 	}
@@ -88,7 +88,7 @@ func (s *TestSuite) TestExecuteWithStdinPipe(c *C) {
 		nsexec.nsDirectory = testCase.nsDirectory
 		nsexec.executor = &fake.Executor{}
 
-		output, err := nsexec.ExecuteWithStdinPipe("binary", []string{"arg1", "arg2"}, "stdin", types.ExecuteDefaultTimeout)
+		output, err := nsexec.ExecuteWithStdinPipe(nil, "binary", []string{"arg1", "arg2"}, "stdin", types.ExecuteDefaultTimeout)
 		c.Assert(err, IsNil)
 		c.Assert(output, Equals, "output")
 	}
