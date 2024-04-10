@@ -374,7 +374,7 @@ func (s *TestSuite) TestFindFiles(c *C) {
 	for testName, testCase := range testCases {
 		c.Logf("testing utils.%v", testName)
 
-		result, err := FindFiles(fakeDir, testCase.findFileWithName)
+		result, err := FindFiles(fakeDir, testCase.findFileWithName, 0)
 		if testCase.expectError {
 			c.Assert(err, NotNil)
 			continue
