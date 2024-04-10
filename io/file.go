@@ -168,7 +168,10 @@ func GetEmptyFiles(directory string) (filePaths []string, err error) {
 func FindFiles(directory, fileName string) (filePaths []string, err error) {
 	err = filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			return err
+			// If the directory contains symbolic links, it might lead to a non-existing file error.
+			// Ignore this error and continue walking the directory.
+			logrus.WithError(err).Warn("Encountered error while searching for files")
+			return nil
 		}
 		if fileName == "" || info.Name() == fileName {
 			filePaths = append(filePaths, path)
