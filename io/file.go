@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -164,8 +165,9 @@ func GetEmptyFiles(directory string) (filePaths []string, err error) {
 
 // FindFiles searches for files in the specified directory with the given fileName.
 // If fileName is empty, it retrieves all files in the directory.
+// If maxDepth is greater than 0, it limits the search to the specified depth.
 // It returns a slice of filePaths and an error if any.
-func FindFiles(directory, fileName string) (filePaths []string, err error) {
+func FindFiles(directory, fileName string, maxDepth int) (filePaths []string, err error) {
 	err = filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			// If the directory contains symbolic links, it might lead to a non-existing file error.
@@ -173,6 +175,19 @@ func FindFiles(directory, fileName string) (filePaths []string, err error) {
 			logrus.WithError(err).Warn("Encountered error while searching for files")
 			return nil
 		}
+
+		// Calculate the depth of the directory
+		depth := strings.Count(strings.TrimPrefix(path, directory), string(os.PathSeparator))
+
+		// Skip the directory if it exceeds the maximum depth
+		if maxDepth > 0 && depth > maxDepth {
+			if info.IsDir() {
+				return filepath.SkipDir // Skip this directory
+			}
+
+			return nil // Skip this file
+		}
+
 		if fileName == "" || info.Name() == fileName {
 			filePaths = append(filePaths, path)
 		}
