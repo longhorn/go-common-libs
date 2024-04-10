@@ -341,17 +341,26 @@ func (s *TestSuite) TestFindFiles(c *C) {
 		_ = os.RemoveAll(fakeDir)
 	}()
 
+	// Prepare sub directory
+	fakeDirSub := fake.CreateTempDirectory(fakeDir, c)
+
+	// Prepare 2 existing files in root of the fake directory,
+	// and 2 existing file in sub directory.
 	existingFileCount := 2
 	existingFilePaths := make(map[string]bool, 3)
 	existingFilePaths[fakeDir] = true
-	for i := 0; i < existingFileCount; i++ {
-		file := fake.CreateTempFile(fakeDir, fmt.Sprintf("test-%v", i), "content", c)
-		existingFilePaths[file.Name()] = true
-		_ = file.Close()
+	existingFilePaths[fakeDirSub] = true
+	for _, dir := range []string{fakeDir, fakeDirSub} {
+		for i := 0; i < existingFileCount; i++ {
+			file := fake.CreateTempFile(dir, fmt.Sprintf("test-%v", i), "content", c)
+			existingFilePaths[file.Name()] = true
+			_ = file.Close()
+		}
 	}
 
 	type testCase struct {
 		findFileWithName string
+		maxDepth         int
 
 		expectedFilePaths []string
 		expectError       bool
@@ -362,19 +371,32 @@ func (s *TestSuite) TestFindFiles(c *C) {
 				fakeDir,
 				filepath.Join(fakeDir, "test-0"),
 				filepath.Join(fakeDir, "test-1"),
+				fakeDirSub,
+				filepath.Join(fakeDirSub, "test-0"),
+				filepath.Join(fakeDirSub, "test-1"),
 			},
 		},
 		"FindFiles(...): find file with name": {
 			findFileWithName: "test-0",
 			expectedFilePaths: []string{
 				filepath.Join(fakeDir, "test-0"),
+				filepath.Join(fakeDirSub, "test-0"),
+			},
+		},
+		"FindFiles(...): max depth": {
+			maxDepth: 1,
+			expectedFilePaths: []string{
+				fakeDir,
+				fakeDirSub,
+				filepath.Join(fakeDir, "test-0"),
+				filepath.Join(fakeDir, "test-1"),
 			},
 		},
 	}
 	for testName, testCase := range testCases {
 		c.Logf("testing utils.%v", testName)
 
-		result, err := FindFiles(fakeDir, testCase.findFileWithName, 0)
+		result, err := FindFiles(fakeDir, testCase.findFileWithName, testCase.maxDepth)
 		if testCase.expectError {
 			c.Assert(err, NotNil)
 			continue
