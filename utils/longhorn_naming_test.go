@@ -20,8 +20,16 @@ func (s *TestSuite) TestIsEngineProcess(c *C) {
 			input:    "nginx-e-0",
 			expected: true,
 		},
+		"engine-3": {
+			input:    "nginx-r-e-0",
+			expected: true,
+		},
 		"replica": {
 			input:    "nginx-r-0",
+			expected: false,
+		},
+		"replica-2": {
+			input:    "nginx-e-r-0",
 			expected: false,
 		},
 		"invalid": {
@@ -34,6 +42,14 @@ func (s *TestSuite) TestIsEngineProcess(c *C) {
 		},
 		"invalid-3": {
 			input:    "abc-eee-0",
+			expected: false,
+		},
+		"invalid-4": {
+			input:    "nginx-er-0",
+			expected: false,
+		},
+		"invalid-5": {
+			input:    "nginx-e--0",
 			expected: false,
 		},
 	}
