@@ -636,3 +636,94 @@ func getDiskStat(path string) (*types.DiskStat, error) {
 		StorageAvailable: fsStat.FreeBlock * fsStat.BlockSize,
 	}, nil
 }
+
+func (s *TestSuite) TestListOpenFiles(c *C) {
+	fakeDir := fake.CreateTempDirectory("", c)
+	defer func() {
+		_ = os.RemoveAll(fakeDir)
+	}()
+
+	type _dirInfo struct {
+		dir   string
+		files []*os.File
+	}
+
+	type _fakeDirs struct {
+		open  _dirInfo
+		close _dirInfo
+	}
+
+	// create fake directories:
+	// 1. open: contains 2 opened files
+	// 2. close: contains 2 closed files
+	fakeDirs := _fakeDirs{
+		open: _dirInfo{
+			dir: fake.CreateTempDirectory(fakeDir, c),
+		},
+		close: _dirInfo{
+			dir: fake.CreateTempDirectory(fakeDir, c),
+		},
+	}
+
+	fakeDirs.open.files = append(fakeDirs.open.files, fake.CreateTempFile(fakeDirs.open.dir, "file1", "content", c))
+	fakeDirs.open.files = append(fakeDirs.open.files, fake.CreateTempFile(fakeDirs.open.dir, "file2", "content", c))
+	defer func() {
+		for _, file := range fakeDirs.open.files {
+			err := file.Close()
+			c.Assert(err, IsNil)
+		}
+	}()
+
+	// Create and close files in the close directory
+	fakeDirs.close.files = append(fakeDirs.close.files, fake.CreateTempFile(fakeDirs.close.dir, "file1", "content", c))
+	fakeDirs.close.files = append(fakeDirs.close.files, fake.CreateTempFile(fakeDirs.close.dir, "file2", "content", c))
+	for _, file := range fakeDirs.close.files {
+		err := file.Close()
+		c.Assert(err, IsNil)
+	}
+
+	time.Sleep(100 * time.Millisecond)
+
+	type testCase struct {
+		directory         string
+		expectedOpenFiles []string
+		expectError       bool
+	}
+	testCases := map[string]testCase{
+		"ListOpenFiles(...)": {
+			directory: fakeDir,
+			expectedOpenFiles: []string{
+				filepath.Join(fakeDirs.open.dir, "file1"),
+				filepath.Join(fakeDirs.open.dir, "file2"),
+			},
+		},
+		"ListOpenFiles(...): not existing path": {
+			directory:   "not-existing-path",
+			expectError: true,
+		},
+		"ListOpenFiles(...): no open files": {
+			directory:   fakeDirs.close.dir,
+			expectError: false,
+		},
+	}
+	for testName, testCase := range testCases {
+		c.Logf("testing utils.%v", testName)
+
+		if testCase.directory == "" {
+			testCase.directory = fakeDir
+		}
+
+		openFiles, err := ListOpenFiles("/proc", testCase.directory)
+		if testCase.expectError {
+			c.Assert(err, NotNil)
+			continue
+		}
+		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
+		c.Assert(len(openFiles), Equals, len(testCase.expectedOpenFiles),
+			Commentf(test.ErrResultFmt, fmt.Sprintf("%s: %v", testName, openFiles)),
+		)
+		for i, openFile := range openFiles {
+			c.Assert(openFile, Equals, testCase.expectedOpenFiles[i])
+		}
+	}
+}
