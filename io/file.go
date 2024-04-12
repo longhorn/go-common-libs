@@ -259,3 +259,51 @@ func GetDiskStat(path string) (diskStat types.DiskStat, err error) {
 		StorageAvailable: int64(statfs.Bfree) * statfs.Bsize,
 	}, nil
 }
+
+// ListOpenFiles returns a list of open files in the specified directory.
+func ListOpenFiles(procDirectory, directory string) ([]string, error) {
+	// Check if the specified directory exists
+	if _, err := os.Stat(directory); err != nil {
+		return nil, err
+	}
+
+	// Get the list of all processes in the provided procDirectory
+	procs, err := os.ReadDir(procDirectory)
+	if err != nil {
+		return nil, err
+	}
+
+	// Iterate over each process in the procDirectory
+	var openedFiles []string
+	for _, proc := range procs {
+		// Skip non-directory entries
+		if !proc.IsDir() {
+			continue
+		}
+
+		// Read the file descriptor directory for the process
+		pid := proc.Name()
+		fdDir := filepath.Join(procDirectory, pid, "fd")
+		files, err := os.ReadDir(fdDir)
+		if err != nil {
+			logrus.WithError(err).Tracef("Failed to read file descriptors for process %v", pid)
+			continue
+		}
+
+		// Iterate over each file in the file descriptor directory
+		for _, file := range files {
+			filePath, err := os.Readlink(filepath.Join(fdDir, file.Name()))
+			if err != nil {
+				logrus.WithError(err).Tracef("Failed to read link for file descriptor %v", file.Name())
+				continue
+			}
+
+			// Check if the file path is within the specified directory
+			if strings.HasPrefix(filePath, directory+"/") || filePath == directory {
+				openedFiles = append(openedFiles, filePath)
+			}
+		}
+	}
+
+	return openedFiles, nil
+}
