@@ -727,3 +727,54 @@ func (s *TestSuite) TestListOpenFiles(c *C) {
 		}
 	}
 }
+
+func (s *TestSuite) TestIsDirectoryEmpty(c *C) {
+	fakeDir := fake.CreateTempDirectory("", c)
+	defer func() {
+		_ = os.RemoveAll(fakeDir)
+	}()
+
+	type testCase struct {
+		isEmpty      bool
+		isNotExist   bool
+		expectError  bool
+		expectResult bool
+	}
+	testCases := map[string]testCase{
+		"IsDirectoryEmpty(...)": {
+			isEmpty:      true,
+			expectResult: true,
+		},
+		"IsDirectoryEmpty(...): not empty": {
+			isEmpty:      false,
+			expectResult: false,
+		},
+		"IsDirectoryEmpty(...): not existing path": {
+			isNotExist:   true,
+			expectError:  true,
+			expectResult: false,
+		},
+	}
+	for testName, testCase := range testCases {
+		c.Logf("testing utils.%v", testName)
+
+		testDir := fake.CreateTempDirectory(fakeDir, c)
+
+		if !testCase.isEmpty {
+			fake.CreateTempFile(testDir, "file", "content", c)
+		}
+
+		if testCase.isNotExist {
+			err := os.RemoveAll(testDir)
+			c.Assert(err, IsNil)
+		}
+
+		result, err := IsDirectoryEmpty(testDir)
+		if testCase.expectError {
+			c.Assert(err, NotNil)
+			continue
+		}
+		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
+		c.Assert(result, Equals, testCase.expectResult, Commentf(test.ErrResultFmt, testName))
+	}
+}
