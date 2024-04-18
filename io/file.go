@@ -307,3 +307,22 @@ func ListOpenFiles(procDirectory, directory string) ([]string, error) {
 
 	return openedFiles, nil
 }
+
+// IsDirectoryEmpty returns true if the specified directory is empty.
+func IsDirectoryEmpty(directory string) (bool, error) {
+	f, err := os.Open(directory)
+	if err != nil {
+		return false, err
+	}
+	defer f.Close()
+
+	_, err = f.Readdirnames(1)
+	if err == io.EOF {
+		return true, nil
+	}
+	if err != nil {
+		return false, err
+	}
+
+	return false, nil
+}
