@@ -15,6 +15,7 @@ require (
 	golang.org/x/sys v0.21.0
 	google.golang.org/grpc v1.64.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
+	k8s.io/api v0.28.5
 	k8s.io/apimachinery v0.28.5
 	k8s.io/mount-utils v0.30.2
 )
