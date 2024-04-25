@@ -48,3 +48,58 @@ func (s *TestSuite) TestGetVolumeNameFromReplicaDataDirectoryName(c *C) {
 		c.Assert(result, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
 	}
 }
+
+func (s *TestSuite) TestIsEngineProcess(c *C) {
+	type testCase struct {
+		input    string
+		expected bool
+	}
+	testCases := map[string]testCase{
+		"IsEngineProcess(...):": {
+			input:    "pvc-5a8ee916-5989-46c6-bafc-ddbf7c802499-e-0",
+			expected: true,
+		},
+		"IsEngineProcess(...): engine": {
+			input:    "nginx-e-0",
+			expected: true,
+		},
+		"IsEngineProcess(...): engine-2": {
+			input:    "nginx-r-e-0",
+			expected: true,
+		},
+		"IsEngineProcess(...): replica": {
+			input:    "nginx-r-0",
+			expected: false,
+		},
+		"IsEngineProcess(...): replica-2": {
+			input:    "nginx-e-r-0",
+			expected: false,
+		},
+		"IsEngineProcess(...): invalid": {
+			input:    "invalid-string",
+			expected: false,
+		},
+		"IsEngineProcess(...): invalid-2": {
+			input:    "-e-0",
+			expected: false,
+		},
+		"IsEngineProcess(...): invalid-3": {
+			input:    "abc-eee-0",
+			expected: false,
+		},
+		"IsEngineProcess(...): invalid-4": {
+			input:    "nginx-er-0",
+			expected: false,
+		},
+		"IsEngineProcess(...): invalid-5": {
+			input:    "nginx-e--0",
+			expected: false,
+		},
+	}
+	for testName, testCase := range testCases {
+		c.Logf("testing utils.%v", testName)
+
+		result := IsEngineProcess(testCase.input)
+		c.Assert(result, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
+	}
+}
