@@ -203,3 +203,43 @@ func (s TestSuite) TestGenerateRandomNumber(c *C) {
 		}
 	}
 }
+
+func (s *TestSuite) TestConvertTypeToString(c *C) {
+	type testCase struct {
+		inputValue interface{}
+
+		expected string
+	}
+	testCases := map[string]testCase{
+		"ConvertTypeToString(...): string": {
+			inputValue: "abc",
+			expected:   "abc",
+		},
+		"ConvertTypeToString(...): int": {
+			inputValue: 123,
+			expected:   "123",
+		},
+		"ConvertTypeToString(...): int64": {
+			inputValue: int64(123),
+			expected:   "123",
+		},
+		"ConvertTypeToString(...): float": {
+			inputValue: 123.456,
+			expected:   "123.456",
+		},
+		"ConvertTypeToString(...): bool": {
+			inputValue: true,
+			expected:   "true",
+		},
+		"ConvertTypeToString(...): unsupported": {
+			inputValue: nil,
+			expected:   "Unsupported type: invalid",
+		},
+	}
+	for testName, testCase := range testCases {
+		c.Logf("testing utils.%v", testName)
+
+		result := ConvertTypeToString(testCase.inputValue)
+		c.Assert(result, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
+	}
+}
