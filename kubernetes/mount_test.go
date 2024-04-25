@@ -1,9 +1,10 @@
-package utils
+package kubernetes
 
 import (
 	. "gopkg.in/check.v1"
 
 	"github.com/longhorn/go-common-libs/test"
+
 	"k8s.io/mount-utils"
 )
 
@@ -13,19 +14,19 @@ func (s *TestSuite) TestIsMountPointReadOnly(c *C) {
 		expected bool
 	}
 	testCases := map[string]testCase{
-		"readOnly": {
+		"IsMountPointReadOnly(...): readOnly": {
 			input: mount.MountPoint{
 				Opts: []string{"ro"},
 			},
 			expected: true,
 		},
-		"readWrite": {
+		"IsMountPointReadOnly(...): readWrite": {
 			input: mount.MountPoint{
 				Opts: []string{"rw"},
 			},
 			expected: false,
 		},
-		"empty": {
+		"IsMountPointReadOnly(...): empty": {
 			input: mount.MountPoint{
 				Opts: []string{},
 			},
