@@ -155,3 +155,51 @@ func (s *TestSuite) TestGetDaemonSet(c *C) {
 		c.Assert(daemonSet.Name, Equals, testCase.daemonSet.Name, Commentf(test.ErrResultFmt, testName))
 	}
 }
+
+func (s *TestSuite) TestIsDaemonSetReady(c *C) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	type testCase struct {
+		daemonSet     *appsv1.DaemonSet
+		expectedReady bool
+	}
+	testCases := map[string]testCase{
+		"IsDaemonSetReady(...):": {
+			daemonSet: &appsv1.DaemonSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "default",
+				},
+				Status: appsv1.DaemonSetStatus{
+					NumberReady:            1,
+					DesiredNumberScheduled: 1,
+				},
+			},
+			expectedReady: true,
+		},
+		"IsDaemonSetReady(...): not ready": {
+			daemonSet: &appsv1.DaemonSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "default",
+				},
+				Status: appsv1.DaemonSetStatus{
+					NumberReady:            0,
+					DesiredNumberScheduled: 1,
+				},
+			},
+			expectedReady: false,
+		},
+	}
+	for testName, testCase := range testCases {
+		c.Logf("testing kubernetes.%v", testName)
+
+		kubeClient := fake.NewSimpleClientset()
+		_, err := kubeClient.AppsV1().DaemonSets(testCase.daemonSet.Namespace).Create(ctx, testCase.daemonSet, metav1.CreateOptions{})
+		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
+
+		ready := IsDaemonSetReady(testCase.daemonSet)
+		c.Assert(ready, Equals, testCase.expectedReady, Commentf(test.ErrResultFmt, testName))
+	}
+}
