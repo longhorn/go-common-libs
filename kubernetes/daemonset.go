@@ -65,3 +65,8 @@ func GetDaemonSet(kubeClient kubeclient.Interface, namespace, name string) (*app
 
 	return kubeClient.AppsV1().DaemonSets(namespace).Get(context.Background(), name, metav1.GetOptions{})
 }
+
+// IsDaemonSetReady checks if the DaemonSet is ready by comparing the number of ready pods with the desired number of pods.
+func IsDaemonSetReady(daemonSet *appsv1.DaemonSet) bool {
+	return daemonSet.Status.NumberReady == daemonSet.Status.DesiredNumberScheduled
+}
