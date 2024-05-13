@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"strings"
+
 	. "gopkg.in/check.v1"
 
 	"github.com/longhorn/go-common-libs/test"
@@ -158,6 +160,7 @@ func (s *TestSuite) TestRandomID(c *C) {
 
 		result := RandomID(testCase.idLength)
 		c.Assert(len(result), Equals, testCase.expectedLength, Commentf(test.ErrResultFmt, testName))
+		c.Assert(strings.Contains(result, "-"), Equals, false, Commentf(test.ErrResultFmt, testName))
 	}
 }
 
