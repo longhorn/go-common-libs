@@ -8,10 +8,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/longhorn/types/pkg/generated/profilerrpc"
 	"google.golang.org/grpc"
 	. "gopkg.in/check.v1"
 
-	"github.com/longhorn/go-common-libs/generated/profilerpb"
 	"github.com/longhorn/go-common-libs/test"
 	"github.com/longhorn/go-common-libs/utils"
 )
@@ -107,7 +107,7 @@ func server(_ context.Context, grpcServerPort int64) *Client {
 
 	grpcServer := grpc.NewServer()
 	server := NewServer("test")
-	profilerpb.RegisterProfilerServer(grpcServer, server)
+	profilerrpc.RegisterProfilerServer(grpcServer, server)
 	go func() {
 		if err := grpcServer.Serve(listen); err != nil && !errors.Is(err, grpc.ErrServerStopped) {
 			_, _ = fmt.Fprintf(os.Stderr, "Failed to start profiler server: %v\n", err)
