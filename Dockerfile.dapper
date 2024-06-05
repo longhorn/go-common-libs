@@ -5,13 +5,6 @@ ARG DAPPER_HOST_ARCH="amd64"
 ENV ARCH="${DAPPER_HOST_ARCH}"
 ENV GOLANGCI_LINT_VERSION="v1.55.2"
 
-ENV PROTOC_VERSION="25.1"
-ENV PROTOC_amd64="https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip" \
-    PROTOC_arm64="https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-aarch_64.zip" \
-    PROTOC="PROTOC_${ARCH}"
-ENV PROTOC_GEN_GO_VERSION="v1.28"
-ENV PROTOC_GEN_GO_GRPC_VERSION="v1.2"
-
 ENV DAPPER_RUN_ARGS --privileged
 ENV DAPPER_ENV REPO TAG DRONE_TAG DRONE_REPO DRONE_PULL_REQUEST DRONE_COMMIT_REF
 ENV DAPPER_SOURCE /go-common-libs
@@ -26,10 +19,3 @@ RUN zypper -n install gzip curl unzip git  && \
     rm -rf /var/cache/zypp/*
 
 RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin ${GOLANGCI_LINT_VERSION}
-
-RUN curl -sfSL ${!PROTOC} -o protoc.zip && \
-    unzip protoc.zip -d /usr/local/ && \
-    rm protoc.zip
-
-RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@${PROTOC_GEN_GO_VERSION} && \
-    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@${PROTOC_GEN_GO_GRPC_VERSION}
