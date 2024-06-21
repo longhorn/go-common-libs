@@ -275,6 +275,7 @@ func (s *TestSuite) TestCopyFile(c *C) {
 
 	type testCase struct {
 		doOverWrite bool
+		sparseSize  int64
 
 		notExistingSourceFileName string
 		notExistingDestDirName    string
@@ -297,6 +298,11 @@ func (s *TestSuite) TestCopyFile(c *C) {
 			doOverWrite:      true,
 			expectedSameSize: true,
 		},
+		"CopyFile(...): sparse file": {
+			doOverWrite:      true,
+			sparseSize:       20,
+			expectedSameSize: true,
+		},
 	}
 	for testName, testCase := range testCases {
 		c.Logf("testing utils.%v", testName)
@@ -304,7 +310,12 @@ func (s *TestSuite) TestCopyFile(c *C) {
 		fakeSourceDir := fake.CreateTempDirectory(fakeSourceParentDir, c)
 		fakeSourceFile := filepath.Join(fakeSourceDir, testCase.notExistingSourceFileName)
 		if testCase.notExistingSourceFileName == "" {
-			fakeFile := fake.CreateTempFile(fakeSourceDir, fmt.Sprintf("test-%v", time.Now().UnixNano()), "content", c)
+			var fakeFile *os.File
+			if testCase.sparseSize != 0 {
+				fakeFile = fake.CreateTempSparseFile(fakeSourceDir, fmt.Sprintf("test-%v", time.Now().UnixNano()), testCase.sparseSize, "content", c)
+			} else {
+				fakeFile = fake.CreateTempFile(fakeSourceDir, fmt.Sprintf("test-%v", time.Now().UnixNano()), "content", c)
+			}
 			fakeSourceFile = fakeFile.Name()
 			_ = fakeFile.Close()
 		}
@@ -333,7 +344,11 @@ func (s *TestSuite) TestCopyFile(c *C) {
 		if !testCase.doOverWrite {
 			c.Assert(string(content), Equals, "do-not-overwrite")
 		} else {
-			c.Assert(string(content), Equals, "content")
+			expectedContent := "content"
+			if testCase.sparseSize != 0 {
+				expectedContent = expectedContent + strings.Repeat("\x00", int(testCase.sparseSize)-len(expectedContent))
+			}
+			c.Assert(string(content), Equals, expectedContent)
 			err := CheckIsFileSizeSame(destFile, fakeSourceFile)
 			c.Assert(err, IsNil)
 		}
