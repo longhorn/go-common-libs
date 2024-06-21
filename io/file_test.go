@@ -279,7 +279,8 @@ func (s *TestSuite) TestCopyFile(c *C) {
 		notExistingSourceFileName string
 		notExistingDestDirName    string
 
-		expectError bool
+		expectError      bool
+		expectedSameSize bool
 	}
 	testCases := map[string]testCase{
 		"CopyFile(...)": {},
@@ -290,9 +291,11 @@ func (s *TestSuite) TestCopyFile(c *C) {
 		"CopyFile(...): not existing destination directory": {
 			notExistingDestDirName: "should-create",
 			doOverWrite:            true,
+			expectedSameSize:       true,
 		},
 		"CopyFile(...): do overwrite": {
-			doOverWrite: true,
+			doOverWrite:      true,
+			expectedSameSize: true,
 		},
 	}
 	for testName, testCase := range testCases {
@@ -331,6 +334,8 @@ func (s *TestSuite) TestCopyFile(c *C) {
 			c.Assert(string(content), Equals, "do-not-overwrite")
 		} else {
 			c.Assert(string(content), Equals, "content")
+			err := CheckIsFileSizeSame(destFile, fakeSourceFile)
+			c.Assert(err, IsNil)
 		}
 	}
 }
@@ -776,5 +781,71 @@ func (s *TestSuite) TestIsDirectoryEmpty(c *C) {
 		}
 		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
 		c.Assert(result, Equals, testCase.expectResult, Commentf(test.ErrResultFmt, testName))
+	}
+}
+
+func (s *TestSuite) TestCheckIsFileSizeSame(c *C) {
+	fakeDir := fake.CreateTempDirectory("", c)
+	defer func() {
+		_ = os.RemoveAll(fakeDir)
+	}()
+
+	type testCase struct {
+		isDifferent  bool
+		isDirectory  bool
+		notFileExist bool
+
+		expectError bool
+	}
+	testCases := map[string]testCase{
+		"CheckIsFileSizeSame(...)": {},
+		"CheckIsFileSizeSame(...): not existing path": {
+			notFileExist: true,
+			expectError:  true,
+		},
+		"CheckIsFileSizeSame(...): different size": {
+			isDifferent: true,
+			expectError: true,
+		},
+		"CheckIsFileSizeSame(...): directory": {
+			isDirectory: true,
+			expectError: true,
+		},
+	}
+	for testName, testCase := range testCases {
+		c.Logf("testing utils.%v", testName)
+
+		testDir := fake.CreateTempDirectory(fakeDir, c)
+
+		fileName1 := "file1"
+		fileName2 := "file2"
+
+		var file1 *os.File
+		var file2 *os.File
+		switch {
+		case testCase.isDifferent:
+			file1 = fake.CreateTempFile(testDir, fileName1, "content", c)
+			file2 = fake.CreateTempFile(testDir, fileName2, "different-content", c)
+		default:
+			file1 = fake.CreateTempFile(testDir, fileName1, "content", c)
+			file2 = fake.CreateTempFile(testDir, fileName2, "content", c)
+		}
+
+		if testCase.notFileExist {
+			err := os.RemoveAll(testDir)
+			c.Assert(err, IsNil)
+		}
+
+		var err error
+		if testCase.isDirectory {
+			err = CheckIsFileSizeSame(file1.Name(), file2.Name(), testDir)
+		} else {
+			err = CheckIsFileSizeSame(file1.Name(), file2.Name())
+		}
+		if testCase.expectError {
+			c.Assert(err, NotNil)
+			continue
+		}
+		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
 	}
 }
