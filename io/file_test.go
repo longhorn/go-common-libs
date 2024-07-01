@@ -300,8 +300,8 @@ func (s *TestSuite) TestCopyFile(c *C) {
 		},
 		"CopyFile(...): sparse file": {
 			doOverWrite:      true,
-			sparseSize:       20,
-			expectedSameSize: true,
+			sparseSize:       4097,
+			expectedSameSize: false,
 		},
 	}
 	for testName, testCase := range testCases {
@@ -350,7 +350,11 @@ func (s *TestSuite) TestCopyFile(c *C) {
 			}
 			c.Assert(string(content), Equals, expectedContent)
 			err := CheckIsFileSizeSame(destFile, fakeSourceFile)
-			c.Assert(err, IsNil)
+			if testCase.expectedSameSize {
+				c.Assert(err, IsNil)
+			} else {
+				c.Assert(err, NotNil)
+			}
 		}
 	}
 }
