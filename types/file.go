@@ -17,7 +17,7 @@ const (
 	DiskDriverVirtioBlk     = DiskDriver("virtio-blk")
 	DiskDriverVirtioPci     = DiskDriver("virtio-pci")
 	DiskDriverUioPciGeneric = DiskDriver("uio_pci_generic")
-	DiskDriverVfioPCI       = DiskDriver("vfio_pci")
+	DiskDriverVfioPci       = DiskDriver("vfio_pci")
 )
 
 type DiskStat struct {
