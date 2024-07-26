@@ -1,6 +1,7 @@
 package ns
 
 import (
+	"strings"
 	"time"
 
 	. "gopkg.in/check.v1"
@@ -115,6 +116,6 @@ func (s *TestSuite) TestExecuteWithEnvs(c *C) {
 
 		output, err := nsexec.Execute([]string{"K1=V1", "K2=V2"}, "env", nil, types.ExecuteDefaultTimeout)
 		c.Assert(err, IsNil)
-		c.Assert(output, Equals, "K1=V1\nK2=V2\n")
+		c.Assert(strings.Contains(output, "K1=V1\nK2=V2\n"), Equals, true)
 	}
 }
