@@ -7,7 +7,7 @@ toolchain go1.22.5
 require (
 	github.com/c9s/goprocinfo v0.0.0-20210130143923-c95fcf8c64a8
 	github.com/google/uuid v1.6.0
-	github.com/longhorn/types v0.0.0-20240706151541-33cb010c3544
+	github.com/longhorn/types v0.0.0-20240725040629-473d671316c4
 	github.com/mitchellh/go-ps v1.0.0
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil/v3 v3.24.5
