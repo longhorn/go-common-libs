@@ -67,6 +67,14 @@ func (s *TestSuite) TestIsEngineProcess(c *C) {
 			input:    "nginx-r-e-0",
 			expected: true,
 		},
+		"IsEngineProcess(...): engine-3": {
+			input:    "pvc-669e5426-8c62-42df-979d-1be22a30cd0a-e-cc7d5051",
+			expected: true,
+		},
+		"IsEngineProcess(...): engine-4": {
+			input:    "pvc-3308aae1-b3c4-4ea3-a6b8-d1fc16cea03b-e-8e24327e",
+			expected: true,
+		},
 		"IsEngineProcess(...): replica": {
 			input:    "nginx-r-0",
 			expected: false,
@@ -93,6 +101,10 @@ func (s *TestSuite) TestIsEngineProcess(c *C) {
 		},
 		"IsEngineProcess(...): invalid-5": {
 			input:    "nginx-e--0",
+			expected: false,
+		},
+		"IsEngineProcess(...): invalid-6": {
+			input:    "nginx-e-0-abcd",
 			expected: false,
 		},
 	}
