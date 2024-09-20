@@ -3,6 +3,7 @@ package utils
 import (
 	"strings"
 
+	"golang.org/x/exp/constraints"
 	. "gopkg.in/check.v1"
 
 	"github.com/longhorn/go-common-libs/test"
@@ -241,5 +242,67 @@ func (s *TestSuite) TestConvertTypeToString(c *C) {
 
 		result := ConvertTypeToString(testCase.inputValue)
 		c.Assert(result, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
+	}
+}
+
+func (s *TestSuite) TestSortKeys(c *C) {
+	// Test cases for base cases
+	baseTestCases := map[string]testCaseSortKeys[string, any]{
+		"SortKeys(...): nil map": {
+			inputMap:    nil,
+			expectError: true,
+		},
+		"SortKeys(...): empty map": {
+			inputMap: map[string]any{},
+			expected: []string{},
+		},
+	}
+
+	// Test cases for string keys
+	stringTestCases := map[string]testCaseSortKeys[string, any]{
+		"SortKeys(...): string": {
+			inputMap: map[string]any{
+				"b": "",
+				"c": "",
+				"a": "",
+			},
+			expected: []string{"a", "b", "c"},
+		},
+	}
+
+	// Test cases for uint64 keys
+	uint64TestCases := map[string]testCaseSortKeys[uint64, any]{
+		"SortKeys(...): uint64": {
+			inputMap: map[uint64]any{
+				2: "",
+				1: "",
+				3: "",
+			},
+			expected: []uint64{1, 2, 3},
+		},
+	}
+
+	runTestSortKeys(c, baseTestCases)
+	runTestSortKeys(c, stringTestCases)
+	runTestSortKeys(c, uint64TestCases)
+}
+
+type testCaseSortKeys[K constraints.Ordered, V any] struct {
+	inputMap    map[K]V
+	expected    []K
+	expectError bool
+}
+
+func runTestSortKeys[K constraints.Ordered, V any](c *C, testCases map[string]testCaseSortKeys[K, V]) {
+	for testName, tc := range testCases {
+		c.Logf("Testing utils.%v", testName)
+		result, err := SortKeys(tc.inputMap)
+
+		if tc.expectError {
+			c.Assert(err, NotNil, Commentf("Expected error in %v", testName))
+			continue
+		}
+		c.Assert(err, IsNil, Commentf("Unexpected error in %v", testName))
+		c.Assert(result, DeepEquals, tc.expected, Commentf("Unexpected result in %v", testName))
 	}
 }
