@@ -2,19 +2,19 @@ module github.com/longhorn/go-common-libs
 
 go 1.22.0
 
-toolchain go1.23.1
+toolchain go1.23.2
 
 require (
 	github.com/RoaringBitmap/roaring v1.9.4
 	github.com/c9s/goprocinfo v0.0.0-20210130143923-c95fcf8c64a8
 	github.com/google/uuid v1.6.0
-	github.com/longhorn/types v0.0.0-20240902072916-1bf23d310acb
+	github.com/longhorn/types v0.0.0-20240925015253-4dae7c529d85
 	github.com/mitchellh/go-ps v1.0.0
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/sirupsen/logrus v1.9.3
 	golang.org/x/sys v0.25.0
-	google.golang.org/grpc v1.67.0
+	google.golang.org/grpc v1.67.1
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	k8s.io/api v0.31.1
 	k8s.io/apimachinery v0.31.1
