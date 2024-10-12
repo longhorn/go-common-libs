@@ -8,7 +8,7 @@ require (
 	github.com/RoaringBitmap/roaring v1.9.4
 	github.com/c9s/goprocinfo v0.0.0-20210130143923-c95fcf8c64a8
 	github.com/google/uuid v1.6.0
-	github.com/longhorn/types v0.0.0-20240925015253-4dae7c529d85
+	github.com/longhorn/types v0.0.0-20241007141758-3640f2357238
 	github.com/mitchellh/go-ps v1.0.0
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil/v3 v3.24.5
@@ -61,7 +61,7 @@ require (
 	golang.org/x/text v0.17.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240814211410-ddb44dafa142 // indirect
-	google.golang.org/protobuf v1.34.2 // indirect
+	google.golang.org/protobuf v1.35.1 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
