@@ -243,3 +243,58 @@ func (s *TestSuite) TestConvertTypeToString(c *C) {
 		c.Assert(result, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
 	}
 }
+
+func (s *TestSuite) TestSortKeys(c *C) {
+	type testCase struct {
+		inputMap map[any]any
+
+		expected    []any
+		expectError bool
+	}
+	testCases := map[string]testCase{
+		"SortKeys(...): string": {
+			inputMap: map[any]any{
+				"b": "",
+				"c": "",
+				"a": "",
+			},
+			expected: []any{"a", "b", "c"},
+		},
+		"SortKeys(...): uint64": {
+			inputMap: map[any]any{
+				uint64(2): "",
+				uint64(1): "",
+				uint64(3): "",
+			},
+			expected: []any{uint64(1), uint64(2), uint64(3)},
+		},
+		"SortKeys(...): empty map": {
+			inputMap: map[any]any{},
+			expected: []any{},
+		},
+		"SortKeys(...): nil map": {
+			inputMap:    nil,
+			expectError: true,
+		},
+		"SortKeys(...): unsupported key type": {
+			inputMap: map[any]any{
+				complex64(0): "",
+				complex64(1): "",
+				complex64(2): "",
+			},
+			expectError: true,
+		},
+	}
+	for testName, testCase := range testCases {
+		c.Logf("testing utils.%v", testName)
+
+		result, err := SortKeys(testCase.inputMap)
+		if testCase.expectError {
+			c.Assert(err, NotNil, Commentf(test.ErrResultFmt, testName))
+			continue
+		}
+		c.Assert(err, IsNil, Commentf(test.ErrResultFmt, testName))
+
+		c.Assert(result, DeepEquals, testCase.expected, Commentf(test.ErrResultFmt, testName))
+	}
+}
