@@ -85,7 +85,7 @@ github.com/kr/pretty
 # github.com/kr/text v0.2.0
 ## explicit
 github.com/kr/text
-# github.com/longhorn/types v0.0.0-20241117042122-c899b8796df9
+# github.com/longhorn/types v0.0.0-20241123075624-48c550af4eab
 ## explicit; go 1.22.7
 github.com/longhorn/types/pkg/generated/profilerrpc
 # github.com/mailru/easyjson v0.7.7
