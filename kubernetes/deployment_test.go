@@ -59,3 +59,103 @@ func (s *TestSuite) TestGetDeployment(c *C) {
 		c.Assert(deployment.Name, Equals, testCase.deployment.Name, Commentf(test.ErrResultFmt, testName))
 	}
 }
+
+func (s *TestSuite) TestListDeployments(c *C) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	type testCase struct {
+		deployments   []*appsv1.Deployment
+		labelSelector map[string]string
+		skipCreate    bool
+		expectError   bool
+	}
+	testCases := map[string]testCase{
+		"ListDeployments(...):": {
+			deployments: []*appsv1.Deployment{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test",
+						Namespace: "default",
+					},
+				},
+			},
+		},
+		"ListDeployments(...): not found": {
+			deployments: []*appsv1.Deployment{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test",
+						Namespace: "default",
+					},
+				},
+			},
+			skipCreate: true,
+		},
+		"ListDeployments(...): with single label": {
+			deployments: []*appsv1.Deployment{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test",
+						Namespace: "default",
+						Labels: map[string]string{
+							"foo":  "bar",
+							"baz":  "qux",
+							"quux": "corge",
+						},
+					},
+				},
+			},
+			labelSelector: map[string]string{
+				"foo": "bar",
+			},
+		},
+		"ListDeployments(...): with multiple labels": {
+			deployments: []*appsv1.Deployment{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test",
+						Namespace: "default",
+						Labels: map[string]string{
+							"foo":  "bar",
+							"baz":  "qux",
+							"quux": "corge",
+						},
+					},
+				},
+			},
+			labelSelector: map[string]string{
+				"foo": "bar",
+				"baz": "qux",
+			},
+		},
+	}
+	for testName, testCase := range testCases {
+		c.Logf("testing kubernetes.%v", testName)
+
+		kubeClient := fake.NewSimpleClientset()
+
+		for _, deployment := range testCase.deployments {
+			if testCase.skipCreate {
+				continue
+			}
+
+			_, err := kubeClient.AppsV1().Deployments(deployment.Namespace).Create(ctx, deployment, metav1.CreateOptions{})
+			c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
+		}
+
+		deployments, err := ListDeployments(kubeClient, testCase.deployments[0].Namespace, testCase.labelSelector)
+		if testCase.expectError {
+			c.Assert(err, NotNil, Commentf(test.ErrErrorFmt, testName))
+			continue
+		}
+		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
+
+		if testCase.skipCreate {
+			c.Assert(len(deployments.Items), Equals, 0, Commentf(test.ErrResultFmt, testName))
+			continue
+		}
+
+		c.Assert(len(deployments.Items), Equals, len(testCase.deployments), Commentf(test.ErrResultFmt, testName))
+	}
+}
