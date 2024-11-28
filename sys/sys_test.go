@@ -1,6 +1,8 @@
 package sys
 
 import (
+	"compress/gzip"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -9,6 +11,7 @@ import (
 
 	. "gopkg.in/check.v1"
 
+	"github.com/longhorn/go-common-libs/io"
 	"github.com/longhorn/go-common-libs/test"
 	"github.com/longhorn/go-common-libs/test/fake"
 	"github.com/longhorn/go-common-libs/types"
@@ -144,5 +147,142 @@ func (s *TestSuite) TestGetSystemBlockDevices(c *C) {
 		result, err := getSystemBlockDeviceInfo(fakeDir, fakeFS.ReadDir, fakeFS.ReadFile)
 		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
 		c.Assert(reflect.DeepEqual(result, testCase.expected), Equals, true, Commentf(test.ErrResultFmt, testName))
+	}
+}
+
+func (s *TestSuite) TestGetBootKernelConfigMap(c *C) {
+	type testCase struct {
+		mockFileContent   string
+		expectedConfigMap map[string]string
+		expectedError     bool
+	}
+	testCases := map[string]testCase{
+		"GetBootKernelConfigMap(...): read kernel config": {
+			mockFileContent: `CONFIG_DM_CRYPT=y
+# comment should be ignored
+CONFIG_NFS_V4=m
+CONFIG_NFS_V4_1=m
+CONFIG_NFS_V4_2=y`,
+			expectedConfigMap: map[string]string{
+				"CONFIG_DM_CRYPT": "y",
+				"CONFIG_NFS_V4":   "m",
+				"CONFIG_NFS_V4_1": "m",
+				"CONFIG_NFS_V4_2": "y",
+			},
+			expectedError: false,
+		},
+		"GetBootKernelConfigMap(...): empty kernel config": {
+			mockFileContent:   "",
+			expectedConfigMap: map[string]string{},
+			expectedError:     false,
+		},
+		"GetBootKernelConfigMap(...): invalid content": {
+			mockFileContent:   "key=val\nCONFIG_invalid_content\n",
+			expectedConfigMap: nil,
+			expectedError:     true,
+		},
+	}
+
+	bootDir := c.MkDir()
+	kernelVersion := "1.2.3.4"
+
+	for testName, testCase := range testCases {
+		c.Logf("testing utils.%v", testName)
+
+		err := os.WriteFile(filepath.Join(bootDir, "config-"+kernelVersion), []byte(testCase.mockFileContent), 0644)
+		c.Assert(err, IsNil)
+
+		exact, err := GetBootKernelConfigMap(bootDir, kernelVersion)
+		c.Assert(exact, DeepEquals, testCase.expectedConfigMap, Commentf(test.ErrResultFmt, testName))
+		if testCase.expectedError {
+			c.Assert(err, NotNil, Commentf(test.ErrErrorFmt, testName, err))
+		} else {
+			c.Assert(err, IsNil)
+		}
+	}
+}
+func (s *TestSuite) TestGetProcKernelConfigMap(c *C) {
+	genKernelConfig := func(dir string, lines ...string) {
+		path := filepath.Join(dir, types.SysKernelConfigGz)
+		file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+		c.Assert(err, IsNil)
+		defer file.Close()
+		gzWriter := gzip.NewWriter(file)
+		defer gzWriter.Close()
+		for _, line := range lines {
+			_, err := fmt.Fprintln(gzWriter, line)
+			c.Assert(err, IsNil)
+		}
+	}
+
+	type testCase struct {
+		setup                    func(dir string)
+		expectedConfigMap        map[string]string
+		expectedConfigMapChecker func(map[string]string) bool
+		expectedError            bool
+	}
+
+	testCases := map[string]testCase{
+		"GetProcKernelConfigMap(...): read kernel config": {
+			setup: func(dir string) {
+				genKernelConfig(dir,
+					"CONFIG_DM_CRYPT=y",
+					"# comment should be ignored",
+					"CONFIG_NFS_V4=m",
+					"CONFIG_NFS_V4_1=m",
+					"CONFIG_NFS_V4_2=y")
+			},
+			expectedConfigMap: map[string]string{
+				"CONFIG_DM_CRYPT": "y",
+				"CONFIG_NFS_V4":   "m",
+				"CONFIG_NFS_V4_1": "m",
+				"CONFIG_NFS_V4_2": "y",
+			},
+			expectedError: false,
+		},
+		"GetProcKernelConfigMap(...): empty kernel config": {
+			setup:             func(dir string) { genKernelConfig(dir) },
+			expectedConfigMap: map[string]string{},
+			expectedError:     false,
+		},
+		"GetProcKernelConfigMap(...): invalid content": {
+			setup:             func(dir string) { genKernelConfig(dir, "key=val\nCONFIG_invalid_content\n") },
+			expectedConfigMap: nil,
+			expectedError:     true,
+		},
+	}
+
+	procDir := c.MkDir()
+
+	realConfigPath := filepath.Join(types.SysProcDirectory, types.SysKernelConfigGz)
+	if _, err := os.ReadFile(realConfigPath); err == nil {
+		testCases["GetProcKernelConfigMap(...): real config"] = testCase{
+			setup: func(dir string) {
+				err := io.CopyFile(realConfigPath, filepath.Join(dir, types.SysKernelConfigGz), true)
+				c.Assert(err, IsNil)
+			},
+			expectedConfigMapChecker: func(cm map[string]string) bool {
+				return len(cm) > 0
+			},
+			expectedError: false,
+		}
+	}
+
+	for testName, testCase := range testCases {
+		c.Logf("testing utils.%v", testName)
+
+		testCase.setup(procDir)
+
+		exact, err := GetProcKernelConfigMap(procDir)
+		if testCase.expectedConfigMapChecker == nil {
+			c.Assert(exact, DeepEquals, testCase.expectedConfigMap, Commentf(test.ErrResultFmt, testName))
+		} else {
+			c.Assert(testCase.expectedConfigMapChecker(exact), Equals, true, Commentf(test.ErrResultFmt, testName))
+		}
+		if testCase.expectedError {
+			c.Assert(err, NotNil, Commentf(test.ErrErrorFmt, testName, err))
+		} else {
+			c.Assert(err, IsNil)
+		}
 	}
 }
