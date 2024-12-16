@@ -1,8 +1,6 @@
 module github.com/longhorn/go-common-libs
 
-go 1.23.0
-
-toolchain go1.23.4
+go 1.22.7
 
 replace (
 	k8s.io/api => k8s.io/api v0.28.5
