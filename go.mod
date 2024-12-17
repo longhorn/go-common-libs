@@ -20,7 +20,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	golang.org/x/exp v0.0.0-20241215155358-4a5509556b9e
 	golang.org/x/sys v0.28.0
-	google.golang.org/grpc v1.69.0
+	google.golang.org/grpc v1.68.1
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	k8s.io/api v0.28.5
 	k8s.io/apimachinery v0.28.5
