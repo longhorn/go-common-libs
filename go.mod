@@ -2,13 +2,6 @@ module github.com/longhorn/go-common-libs
 
 go 1.22.7
 
-replace (
-	k8s.io/api => k8s.io/api v0.28.5
-	k8s.io/apimachinery => k8s.io/apimachinery v0.28.5
-	k8s.io/client-go => k8s.io/client-go v0.28.5
-	k8s.io/mount-utils => k8s.io/mount-utils v0.28.5
-)
-
 require (
 	github.com/RoaringBitmap/roaring v1.9.4
 	github.com/c9s/goprocinfo v0.0.0-20210130143923-c95fcf8c64a8
@@ -22,10 +15,10 @@ require (
 	golang.org/x/sys v0.28.0
 	google.golang.org/grpc v1.68.1
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
-	k8s.io/api v0.28.5
-	k8s.io/apimachinery v0.28.5
-	k8s.io/client-go v0.28.5
-	k8s.io/mount-utils v0.28.5
+	k8s.io/api v0.28.15
+	k8s.io/apimachinery v0.28.15
+	k8s.io/client-go v0.28.15
+	k8s.io/mount-utils v0.28.15
 )
 
 require (
