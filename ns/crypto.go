@@ -1,9 +1,11 @@
 package ns
 
 import (
+	"os/exec"
 	"time"
 
 	"github.com/longhorn/go-common-libs/types"
+	"github.com/pkg/errors"
 )
 
 // LuksOpen runs cryptsetup luksOpen with the given passphrase and
@@ -45,6 +47,23 @@ func (nsexec *Executor) LuksResize(volume, passphrase string, timeout time.Durat
 func (nsexec *Executor) LuksStatus(volume string, timeout time.Duration) (stdout string, err error) {
 	args := []string{"status", volume}
 	return nsexec.Cryptsetup(args, timeout)
+}
+
+func (nsexec *Executor) IsLuks(devicePath string, timeout time.Duration) (bool, error) {
+	args := []string{"isLuks", devicePath}
+	_, err := nsexec.Cryptsetup(args, timeout)
+	if err == nil {
+		return true, nil
+	}
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		if exitErr.ExitCode() == 1 {
+			// The device is not encrypted if exit code of 1 is returned
+			// Ref https://gitlab.com/cryptsetup/cryptsetup/-/blob/main/FAQ.md?plain=1#L2848
+			return false, nil
+		}
+	}
+	return false, err
 }
 
 // Cryptsetup runs cryptsetup without passphrase. It will return
