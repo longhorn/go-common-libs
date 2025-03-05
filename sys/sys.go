@@ -41,7 +41,9 @@ func GetArch() (string, error) {
 	return string(arch), nil
 }
 
-// GetKernelRelease returns the kernel release string.
+// GetKernelRelease retrieves the kernel release by calling the unix.Uname function
+// and extracting the release information from the Utsname structure.
+// It returns the kernel release as a string and an error if the operation fails.
 func GetKernelRelease() (string, error) {
 	utsname := &unix.Utsname{}
 	if err := unix.Uname(utsname); err != nil {
