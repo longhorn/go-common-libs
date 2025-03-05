@@ -19,6 +19,28 @@ import (
 	commonio "github.com/longhorn/go-common-libs/io"
 )
 
+// GetArch retrieves the system architecture by calling the unix.Uname function
+// and extracting the architecture information from the Utsname structure.
+// It returns the architecture as a string and an error if the operation fails.
+func GetArch() (string, error) {
+	utsname := &unix.Utsname{}
+	if err := unix.Uname(utsname); err != nil {
+		logrus.WithError(err).Warn("Failed to get system architecture")
+		return "", err
+	}
+
+	// Extract the architecture from the Utsname structure
+	arch := make([]byte, 0, len(utsname.Machine))
+	for _, b := range utsname.Machine {
+		if b == 0x00 {
+			logrus.Trace("Found end of architecture string [0x00]")
+			break
+		}
+		arch = append(arch, byte(b))
+	}
+	return string(arch), nil
+}
+
 // GetKernelRelease returns the kernel release string.
 func GetKernelRelease() (string, error) {
 	utsname := &unix.Utsname{}
