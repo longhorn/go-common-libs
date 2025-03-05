@@ -34,7 +34,7 @@ func (s *TestSuite) TestFileLock(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing sync.%v", testName)
 
 		if testCase.fileLockDirectory == "" {
 			testCase.fileLockDirectory = fakeDir

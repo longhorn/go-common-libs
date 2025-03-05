@@ -43,7 +43,7 @@ func (s *TestSuite) TestIsLoopbackHost(c *C) {
 	}
 
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing net.%v", testName)
 
 		result := IsLoopbackHost(testCase.host)
 		c.Assert(result, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
@@ -64,7 +64,7 @@ func (s *TestSuite) TestGetLocalIPv4fromInterface(c *C) {
 	}
 
 	for testName := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing net.%v", testName)
 
 		interfaces, err := net.Interfaces()
 		c.Assert(err, IsNil)
@@ -96,7 +96,7 @@ func (s *TestSuite) TestGetAnyExternalIP(c *C) {
 	}
 
 	for testName := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing net.%v", testName)
 
 		ip, err := GetAnyExternalIP()
 

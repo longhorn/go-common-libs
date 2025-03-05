@@ -29,7 +29,7 @@ func (s *TestSuite) TestGetKernelRelease(c *C) {
 		"GetKernelRelease(...)": {},
 	}
 	for testName := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing sys.%v", testName)
 
 		result, err := GetKernelRelease()
 		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
@@ -56,7 +56,7 @@ ID_LIKE="suse"`,
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing sys.%v", testName)
 
 		result, err := GetOSDistro(testCase.mockFileContent)
 		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
@@ -81,7 +81,7 @@ ID_LIKE="suse"`,
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing sys.%v", testName)
 
 		_, err := GetOSDistro(testCase.mockFileContent)
 		c.Assert(err, NotNil)
@@ -124,7 +124,7 @@ func (s *TestSuite) TestGetSystemBlockDevices(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing sys.%v", testName)
 
 		fakeFS := fake.FileSystem{
 			DirEntries: testCase.mockDirEntries,
@@ -187,7 +187,7 @@ CONFIG_NFS_V4_2=y`,
 	kernelVersion := "1.2.3.4"
 
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing sys.%v", testName)
 
 		err := os.WriteFile(filepath.Join(bootDir, "config-"+kernelVersion), []byte(testCase.mockFileContent), 0644)
 		c.Assert(err, IsNil)
@@ -269,7 +269,7 @@ func (s *TestSuite) TestGetProcKernelConfigMap(c *C) {
 	}
 
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing sys.%v", testName)
 
 		testCase.setup(procDir)
 

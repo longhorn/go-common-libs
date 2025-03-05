@@ -44,7 +44,7 @@ func (s *TestSuite) TestGetObjMetaAccesser(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing kubernetes.%v", testName)
 
 		meta, err := GetObjMetaAccesser(testCase.obj)
 

@@ -47,7 +47,7 @@ func (s *TestSuite) TestExecute(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing exec.%v", testName)
 
 		executor := NewExecutor()
 		output, err := executor.Execute(nil, testCase.command[0], testCase.command[1:], testCase.timeout)
@@ -76,7 +76,7 @@ func (s *TestSuite) TestExecuteWithStdin(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing exec.%v", testName)
 
 		if testCase.timeout == 0 {
 			testCase.timeout = types.ExecuteDefaultTimeout
@@ -121,7 +121,7 @@ func (s *TestSuite) TestExecuteWithStdinPipe(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing exec.%v", testName)
 
 		if testCase.timeout == 0 {
 			testCase.timeout = types.ExecuteDefaultTimeout
