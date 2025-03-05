@@ -31,7 +31,7 @@ func (s *TestSuite) TestGetProcessPID(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing proc.%v", testName)
 
 		result, err := GetProcessPIDs(testCase.process, testCase.procPath)
 		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
@@ -56,7 +56,7 @@ func (s *TestSuite) TestGetHostNamespacePid(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing proc.%v", testName)
 
 		result := GetHostNamespacePID(testCase.procPath)
 		c.Assert(result, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
@@ -79,7 +79,7 @@ func (s *TestSuite) TestGetProcessAncestorNamespaceDirectory(c *C) {
 	}
 
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing proc.%v", testName)
 
 		result, err := GetProcessAncestorNamespaceDirectory(testCase.process, testCase.procPath)
 		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
@@ -119,7 +119,7 @@ func (s *TestSuite) TestGetProcessNamespaceDirectory(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing proc.%v", testName)
 
 		if testCase.expected == "" {
 			pids, err := GetProcessPIDs(testCase.process, testCase.procPath)

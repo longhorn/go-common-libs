@@ -104,7 +104,7 @@ func (s *TestSuite) TestGetSystemDefaultNFSVersion(c *C) {
 
 	for testName, testCase := range testCases {
 		func() {
-			c.Logf("testing utils.%v", testName)
+			c.Logf("testing nfs.%v", testName)
 
 			defer os.Remove(filepath.Join(configDir, types.NFSMountFileName))
 			testCase.setup(configDir)

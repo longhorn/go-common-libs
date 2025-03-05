@@ -44,7 +44,7 @@ func (s *TestSuite) TestCreateDirectory(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing io.%v", testName)
 
 		if testCase.expectedModTime.IsZero() {
 			testCase.expectedModTime = testCase.modTime
@@ -106,7 +106,7 @@ func (s *TestSuite) TestCopyDirectory(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing io.%v", testName)
 
 		fakeSourceDir := fake.CreateTempDirectory(fakeSourceParentDir, c)
 		fakeSourceFiles := make([]string, 3)
@@ -190,7 +190,7 @@ func (s *TestSuite) TestCopyFiles(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing io.%v", testName)
 
 		sourceSubDirName := ""
 		sourceFiles := make([]string, 3)
@@ -305,7 +305,7 @@ func (s *TestSuite) TestCopyFile(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing io.%v", testName)
 
 		fakeSourceDir := fake.CreateTempDirectory(fakeSourceParentDir, c)
 		fakeSourceFile := filepath.Join(fakeSourceDir, testCase.notExistingSourceFileName)
@@ -418,7 +418,7 @@ func (s *TestSuite) TestFindFiles(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing io.%v", testName)
 
 		result, err := FindFiles(fakeDir, testCase.findFileWithName, testCase.maxDepth)
 		if testCase.expectError {
@@ -472,7 +472,7 @@ func (s *TestSuite) TestGetEmptyFiles(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing io.%v", testName)
 
 		if testCase.directory == "" {
 			testCase.directory = fakeDir
@@ -513,7 +513,7 @@ func (s *TestSuite) TestReadFileContent(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing io.%v", testName)
 
 		expectedContent := fmt.Sprintf(fileContentFmt, testName)
 
@@ -555,7 +555,7 @@ func (s *TestSuite) TestSyncFile(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing io.%v", testName)
 
 		filePath := filepath.Join(fakeDir, "not-exist")
 		if testCase.isFileExist {
@@ -593,7 +593,7 @@ func (s *TestSuite) TestGetDiskStat(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing io.%v", testName)
 
 		testDir := fake.CreateTempDirectory(fakeDir, c)
 		if !testCase.isPathExist {
@@ -731,7 +731,7 @@ func (s *TestSuite) TestListOpenFiles(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing io.%v", testName)
 
 		if testCase.directory == "" {
 			testCase.directory = fakeDir
@@ -780,7 +780,7 @@ func (s *TestSuite) TestIsDirectoryEmpty(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing io.%v", testName)
 
 		testDir := fake.CreateTempDirectory(fakeDir, c)
 
@@ -832,7 +832,7 @@ func (s *TestSuite) TestCheckIsFileSizeSame(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing io.%v", testName)
 
 		testDir := fake.CreateTempDirectory(fakeDir, c)
 

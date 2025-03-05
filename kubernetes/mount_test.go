@@ -34,7 +34,7 @@ func (s *TestSuite) TestIsMountPointReadOnly(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
+		c.Logf("testing kubernetes.%v", testName)
 
 		result := IsMountPointReadOnly(testCase.input)
 		c.Assert(result, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
