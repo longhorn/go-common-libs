@@ -15,6 +15,7 @@ import (
 	"github.com/longhorn/go-common-libs/test"
 	"github.com/longhorn/go-common-libs/test/fake"
 	"github.com/longhorn/go-common-libs/types"
+	"github.com/longhorn/go-common-libs/utils"
 )
 
 func Test(t *testing.T) { TestingT(t) }
@@ -22,6 +23,28 @@ func Test(t *testing.T) { TestingT(t) }
 type TestSuite struct{}
 
 var _ = Suite(&TestSuite{})
+
+func (s *TestSuite) TestGetArch(c *C) {
+	type testCase struct{}
+	testCases := map[string]testCase{
+		"GetArch(...)": {},
+	}
+	for testName := range testCases {
+		c.Logf("testing sys.%v", testName)
+
+		result, err := GetArch()
+		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
+		c.Assert(result, Not(Equals), "", Commentf(test.ErrResultFmt, testName))
+
+		// https://longhorn.io/docs/1.9.0/best-practices/#architecture
+		supportedArch := []string{
+			"x86_64",  // amd64
+			"aarch64", // arm64
+			"s390x",   // s390x
+		}
+		c.Assert(utils.Contains(supportedArch, result), Equals, true, Commentf(test.ErrResultFmt, testName))
+	}
+}
 
 func (s *TestSuite) TestGetKernelRelease(c *C) {
 	type testCase struct{}
