@@ -8,6 +8,31 @@ import (
 	"github.com/longhorn/go-common-libs/types"
 )
 
+func testCaseGetArch(c *C) map[string]testCaseNamespaceMethods {
+	return map[string]testCaseNamespaceMethods{
+		"GetGetArch(...)": {
+			method: func(args ...interface{}) (interface{}, error) {
+				return GetArch()
+			},
+			mockResult: "result",
+		},
+		"GetArch(...): failed to run": {
+			method: func(args ...interface{}) (interface{}, error) {
+				return GetArch()
+			},
+			mockError:   fmt.Errorf("failed"),
+			expectError: true,
+		},
+		"GetArch(...): failed to cast result": {
+			method: func(args ...interface{}) (interface{}, error) {
+				return GetArch()
+			},
+			mockResult:  int(1),
+			expectError: true,
+		},
+	}
+}
+
 func testCaseKernelRelease(c *C) map[string]testCaseNamespaceMethods {
 	return map[string]testCaseNamespaceMethods{
 		"GetKernelRelease(...)": {
