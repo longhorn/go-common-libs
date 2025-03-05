@@ -125,6 +125,7 @@ func runNamespaceMethodTest(c *C, testName string, testCase testCaseNamespaceMet
 
 func (s *TestSuite) TestNamespaceMethods(c *C) {
 	testMethods := []map[string]testCaseNamespaceMethods{
+		testCaseGetArch(c),
 		testCaseKernelRelease(c),
 		testCaseSync(c),
 		testCaseGetOSDistro(c),
