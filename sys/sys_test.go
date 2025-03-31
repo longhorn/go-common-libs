@@ -163,8 +163,9 @@ func (s *TestSuite) TestGetSystemBlockDevices(c *C) {
 			// Create device file
 			devicePath := filepath.Join(deviceDir, "dev")
 			deviceFile, err := os.Create(devicePath)
-			deviceFile.Close()
+			errClose := deviceFile.Close()
 			c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
+			c.Assert(errClose, IsNil, Commentf(test.ErrErrorFmt, testName, errClose))
 		}
 
 		result, err := getSystemBlockDeviceInfo(fakeDir, fakeFS.ReadDir, fakeFS.ReadFile)
@@ -229,9 +230,15 @@ func (s *TestSuite) TestGetProcKernelConfigMap(c *C) {
 		path := filepath.Join(dir, types.SysKernelConfigGz)
 		file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 		c.Assert(err, IsNil)
-		defer file.Close()
+		defer func() {
+			errClose := file.Close()
+			c.Assert(errClose, IsNil)
+		}()
 		gzWriter := gzip.NewWriter(file)
-		defer gzWriter.Close()
+		defer func() {
+			errClose := gzWriter.Close()
+			c.Assert(errClose, IsNil)
+		}()
 		for _, line := range lines {
 			_, err := fmt.Fprintln(gzWriter, line)
 			c.Assert(err, IsNil)

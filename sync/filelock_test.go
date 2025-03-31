@@ -12,7 +12,10 @@ import (
 
 func (s *TestSuite) TestFileLock(c *C) {
 	fakeDir := fake.CreateTempDirectory("", c)
-	defer os.RemoveAll(fakeDir)
+	defer func() {
+		errRemove := os.RemoveAll(fakeDir)
+		c.Assert(errRemove, IsNil)
+	}()
 
 	type testCase struct {
 		fileLockDirectory string

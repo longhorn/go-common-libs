@@ -632,7 +632,7 @@ func getDiskStat(path string) (*types.DiskStat, error) {
 	if err != nil {
 		return nil, err
 	}
-	output = strings.Replace(output, "\n", "", -1)
+	output = strings.ReplaceAll(output, "\n", "")
 
 	type FsStat struct {
 		Fsid       string
