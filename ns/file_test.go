@@ -106,10 +106,16 @@ func testCaseGetEmptyFiles(c *C) map[string]testCaseNamespaceMethods {
 
 func testCaseGetFileInfo(c *C) map[string]testCaseNamespaceMethods {
 	fakeDir := fake.CreateTempDirectory("", c)
-	defer os.RemoveAll(fakeDir)
+	defer func() {
+		errRemove := os.RemoveAll(fakeDir)
+		c.Assert(errRemove, IsNil)
+	}()
 
 	fakeFile := fake.CreateTempFile(fakeDir, "", "content", c)
-	defer fakeFile.Close()
+	defer func() {
+		errClose := fakeFile.Close()
+		c.Assert(errClose, IsNil)
+	}()
 
 	mockResult, err := fakeFile.Stat()
 	c.Assert(err, IsNil)
