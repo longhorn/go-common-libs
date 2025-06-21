@@ -125,7 +125,7 @@ github.com/sirupsen/logrus
 # github.com/yusufpapurcu/wmi v1.2.4
 ## explicit; go 1.16
 github.com/yusufpapurcu/wmi
-# golang.org/x/exp v0.0.0-20250606033433-dcc06ee1d476
+# golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b
 ## explicit; go 1.23.0
 golang.org/x/exp/constraints
 # golang.org/x/net v0.30.0
