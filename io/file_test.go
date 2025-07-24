@@ -7,8 +7,10 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	. "gopkg.in/check.v1"
 
 	"github.com/longhorn/go-common-libs/exec"
@@ -17,8 +19,8 @@ import (
 	"github.com/longhorn/go-common-libs/types"
 )
 
-func (s *TestSuite) TestCreateDirectory(c *C) {
-	fakeDir := fake.CreateTempDirectory("", c)
+func TestCreateDirectory(t *testing.T) {
+	fakeDir := fake.CreateTempDirectory("", t)
 	defer func() {
 		_ = os.RemoveAll(fakeDir)
 	}()
@@ -33,10 +35,10 @@ func (s *TestSuite) TestCreateDirectory(c *C) {
 		expectError     bool
 	}
 	testCases := map[string]testCase{
-		"CreateDirectory(...)": {
+		"Not existing directory": {
 			modTime: time.Date(2023, time.July, 1, 12, 0, 0, 0, time.UTC),
 		},
-		"CreateDirectory(...) existing": {
+		"Existing directory": {
 			modTime:            time.Now(),
 			isExistingDir:      true,
 			existingDirModTime: time.Date(2023, time.July, 1, 12, 0, 0, 0, time.UTC),
@@ -44,44 +46,43 @@ func (s *TestSuite) TestCreateDirectory(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing io.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			if testCase.expectedModTime.IsZero() {
+				testCase.expectedModTime = testCase.modTime
+			}
 
-		if testCase.expectedModTime.IsZero() {
-			testCase.expectedModTime = testCase.modTime
-		}
+			dirPath := filepath.Join(fakeDir, fmt.Sprintf("test-%v", time.Now().UnixNano()))
 
-		dirPath := filepath.Join(fakeDir, fmt.Sprintf("test-%v", time.Now().UnixNano()))
+			if testCase.isExistingDir {
+				_, err := CreateDirectory(dirPath, testCase.existingDirModTime)
+				assert.NoError(t, err)
+			}
 
-		if testCase.isExistingDir {
-			_, err := CreateDirectory(dirPath, testCase.existingDirModTime)
-			c.Assert(err, IsNil)
-		}
+			createdPath, err := CreateDirectory(dirPath, testCase.modTime)
+			if testCase.expectError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName, err))
+			assert.Equal(t, dirPath, createdPath, Commentf(test.ErrResultFmt, testName))
 
-		createdPath, err := CreateDirectory(dirPath, testCase.modTime)
-		if testCase.expectError {
-			c.Assert(err, NotNil)
-			continue
-		}
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
-		c.Assert(createdPath, Equals, dirPath, Commentf(test.ErrResultFmt, testName))
-
-		fileInfo, err := os.Stat(createdPath)
-		c.Assert(err, IsNil)
-		c.Assert(
-			fileInfo.ModTime().Equal(testCase.expectedModTime), Equals, true,
-			Commentf("Unexpected mod time for test case: %s: expected: %v, got: %v",
-				testName, testCase.expectedModTime, fileInfo.ModTime()),
-		)
+			fileInfo, err := os.Stat(createdPath)
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName, err))
+			assert.Equal(t, fileInfo.ModTime().Equal(testCase.expectedModTime), true,
+				Commentf("Unexpected mod time for test case: %s: expected: %v, got: %v",
+					testName, testCase.expectedModTime, fileInfo.ModTime()),
+			)
+		})
 	}
 }
 
-func (s *TestSuite) TestCopyDirectory(c *C) {
-	fakeSourceParentDir := fake.CreateTempDirectory("", c)
+func TestCopyDirectory(t *testing.T) {
+	fakeSourceParentDir := fake.CreateTempDirectory("", t)
 	defer func() {
 		_ = os.RemoveAll(fakeSourceParentDir)
 	}()
 
-	fakeDestParentDir := fake.CreateTempDirectory("", c)
+	fakeDestParentDir := fake.CreateTempDirectory("", t)
 	defer func() {
 		_ = os.RemoveAll(fakeDestParentDir)
 	}()
@@ -96,65 +97,67 @@ func (s *TestSuite) TestCopyDirectory(c *C) {
 		expectError bool
 	}
 	testCases := map[string]testCase{
-		"CopyDirectory(...)": {},
-		"CopyDirectory(...): not existing destination directory": {
+		"Existing directory without overwrite": {},
+		"Not existing destination directory": {
 			notExistingDestDirName: "should-create",
 			doOverWrite:            true,
 		},
-		"CopyDirectory(...): do overwrite": {
+		"Do overwrite": {
 			doOverWrite: true,
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing io.%v", testName)
-
-		fakeSourceDir := fake.CreateTempDirectory(fakeSourceParentDir, c)
-		fakeSourceFiles := make([]string, 3)
-		for i := 0; i < 3; i++ {
-			fakeSourceFile := fake.CreateTempFile(fakeSourceDir, fmt.Sprintf(fakeFileNameFmt, i), fmt.Sprintf("test-%v", i), c)
-			fakeSourceFiles[i] = fakeSourceFile.Name()
-			_ = fakeSourceFile.Close()
-		}
-
-		fakeDestDir := filepath.Join(fakeDestParentDir, testCase.notExistingDestDirName)
-		if testCase.notExistingDestDirName == "" {
-			fakeDestDir = fake.CreateTempDirectory(fakeDestParentDir, c)
-		}
-
-		if !testCase.doOverWrite {
-			for i := range fakeSourceFiles {
-				fake.CreateTempFile(fakeDestDir, fmt.Sprintf(fakeFileNameFmt, i), fmt.Sprintf("do-not-overwrite-%v", i), c)
+		t.Run(testName, func(t *testing.T) {
+			fakeSourceDir := fake.CreateTempDirectory(fakeSourceParentDir, t)
+			fakeSourceFiles := make([]string, 3)
+			for i := 0; i < 3; i++ {
+				fakeSourceFile := fake.CreateTempFile(fakeSourceDir, fmt.Sprintf(fakeFileNameFmt, i), fmt.Sprintf("test-%v", i), t)
+				fakeSourceFiles[i] = fakeSourceFile.Name()
+				_ = fakeSourceFile.Close()
 			}
-		}
 
-		err := CopyDirectory(fakeSourceDir, fakeDestDir, testCase.doOverWrite)
-		if testCase.expectError {
-			c.Assert(err, NotNil)
-			continue
-		}
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
-
-		for i, sourceFile := range fakeSourceFiles {
-			destFile := filepath.Join(fakeDestDir, filepath.Base(sourceFile))
-			content, err := os.ReadFile(destFile)
-			c.Assert(err, IsNil)
+			fakeDestDir := filepath.Join(fakeDestParentDir, testCase.notExistingDestDirName)
+			if testCase.notExistingDestDirName == "" {
+				fakeDestDir = fake.CreateTempDirectory(fakeDestParentDir, t)
+			}
 
 			if !testCase.doOverWrite {
-				c.Assert(string(content), Equals, fmt.Sprintf("do-not-overwrite-%v", i))
-			} else {
-				c.Assert(string(content), Equals, fmt.Sprintf("test-%v", i))
+				for i := range fakeSourceFiles {
+					fake.CreateTempFile(fakeDestDir, fmt.Sprintf(fakeFileNameFmt, i), fmt.Sprintf("do-not-overwrite-%v", i), t)
+				}
 			}
-		}
+
+			err := CopyDirectory(fakeSourceDir, fakeDestDir, testCase.doOverWrite)
+			if testCase.expectError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName, err))
+
+			for i, sourceFile := range fakeSourceFiles {
+				destFile := filepath.Join(fakeDestDir, filepath.Base(sourceFile))
+				content, err := os.ReadFile(destFile)
+				assert.NoError(t, err)
+
+				if !testCase.doOverWrite {
+					assert.Equal(t, string(content), fmt.Sprintf("do-not-overwrite-%v", i))
+				} else {
+					assert.Equal(t, string(content), fmt.Sprintf("test-%v", i))
+				}
+			}
+
+		})
+
 	}
 }
 
-func (s *TestSuite) TestCopyFiles(c *C) {
-	sourceParentDir := fake.CreateTempDirectory("", c)
+func TestCopyFiles(t *testing.T) {
+	sourceParentDir := fake.CreateTempDirectory("", t)
 	defer func() {
 		_ = os.RemoveAll(sourceParentDir)
 	}()
 
-	destParentDir := fake.CreateTempDirectory("", c)
+	destParentDir := fake.CreateTempDirectory("", t)
 	defer func() {
 		_ = os.RemoveAll(destParentDir)
 	}()
@@ -173,102 +176,103 @@ func (s *TestSuite) TestCopyFiles(c *C) {
 		expectError bool
 	}
 	testCases := map[string]testCase{
-		"CopyFiles(...)": {},
-		"CopyFiles(...): in sub directories": {
+		"Copy files to existing directory": {},
+		"Copy files in subdirectories": {
 			isInSubDirs: true,
 		},
-		"CopyFiles(...): source is a file": {
+		"Copy single file instead of directory": {
 			isSourceAFile: true,
 		},
-		"CopyFiles(...): not existing source directory": {
+		"Fails when source directory does not exist": {
 			notExistingSourceDirName: "not-existing",
 			expectError:              true,
 		},
-		"CopyFiles(...): not existing destination directory": {
+		"Create destination directory if it does not exist": {
 			notExistingDestDirName: "should-create",
 			doOverWrite:            true,
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing io.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			sourceSubDirName := ""
+			sourceFiles := make([]string, 3)
 
-		sourceSubDirName := ""
-		sourceFiles := make([]string, 3)
+			sourceDir := filepath.Join(sourceParentDir, testCase.notExistingSourceDirName)
+			if testCase.notExistingSourceDirName == "" {
+				sourceDir = fake.CreateTempDirectory(sourceParentDir, t)
 
-		sourceDir := filepath.Join(sourceParentDir, testCase.notExistingSourceDirName)
-		if testCase.notExistingSourceDirName == "" {
-			sourceDir = fake.CreateTempDirectory(sourceParentDir, c)
-
-			if testCase.isInSubDirs {
-				sourceSubDirName = path.Base(fake.CreateTempDirectory(sourceDir, c))
-			}
-
-			fileDir := path.Join(sourceDir, sourceSubDirName)
-
-			for i := 0; i < 3; i++ {
-				sourceFile := fake.CreateTempFile(fileDir, fmt.Sprintf(fileNameFmt, i), fmt.Sprintf("test-%v", i), c)
-				sourceFiles[i] = sourceFile.Name()
-				_ = sourceFile.Close()
-			}
-		}
-
-		destDir := filepath.Join(destParentDir, testCase.notExistingDestDirName)
-		if testCase.notExistingDestDirName == "" {
-			destDir = fake.CreateTempDirectory(destParentDir, c)
-		}
-
-		if !testCase.doOverWrite {
-			for i := range sourceFiles {
-				destFileDir := filepath.Join(destDir, sourceSubDirName)
-
-				err := os.MkdirAll(destFileDir, 0755)
-				c.Assert(err, IsNil)
-
-				fake.CreateTempFile(destFileDir, fmt.Sprintf(fileNameFmt, i), fmt.Sprintf("do-not-overwrite-%v", i), c)
-			}
-		}
-
-		if testCase.isSourceAFile {
-			for _, sourceFile := range sourceFiles {
-				destFile := filepath.Join(destDir, filepath.Base(sourceFile))
-				err := CopyFiles(sourceFile, destFile, testCase.doOverWrite)
-				if testCase.expectError {
-					c.Assert(err, NotNil)
-					continue
+				if testCase.isInSubDirs {
+					sourceSubDirName = path.Base(fake.CreateTempDirectory(sourceDir, t))
 				}
-				c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
-			}
-		} else {
-			err := CopyFiles(sourceDir, destDir, testCase.doOverWrite)
-			if testCase.expectError {
-				c.Assert(err, NotNil)
-				continue
-			}
-			c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
-		}
 
-		for i, sourceFile := range sourceFiles {
-			destFile := filepath.Join(destDir, sourceSubDirName, path.Base(sourceFile))
+				fileDir := path.Join(sourceDir, sourceSubDirName)
 
-			content, err := os.ReadFile(destFile)
-			c.Assert(err, IsNil)
+				for i := 0; i < 3; i++ {
+					sourceFile := fake.CreateTempFile(fileDir, fmt.Sprintf(fileNameFmt, i), fmt.Sprintf("test-%v", i), t)
+					sourceFiles[i] = sourceFile.Name()
+					_ = sourceFile.Close()
+				}
+			}
+
+			destDir := filepath.Join(destParentDir, testCase.notExistingDestDirName)
+			if testCase.notExistingDestDirName == "" {
+				destDir = fake.CreateTempDirectory(destParentDir, t)
+			}
 
 			if !testCase.doOverWrite {
-				c.Assert(string(content), Equals, fmt.Sprintf("do-not-overwrite-%v", i))
-			} else {
-				c.Assert(string(content), Equals, fmt.Sprintf("test-%v", i))
+				for i := range sourceFiles {
+					destFileDir := filepath.Join(destDir, sourceSubDirName)
+
+					err := os.MkdirAll(destFileDir, 0755)
+					assert.NoError(t, err)
+
+					fake.CreateTempFile(destFileDir, fmt.Sprintf(fileNameFmt, i), fmt.Sprintf("do-not-overwrite-%v", i), t)
+				}
 			}
-		}
+
+			if testCase.isSourceAFile {
+				for _, sourceFile := range sourceFiles {
+					destFile := filepath.Join(destDir, filepath.Base(sourceFile))
+					err := CopyFiles(sourceFile, destFile, testCase.doOverWrite)
+					if testCase.expectError {
+						assert.Error(t, err)
+						continue
+					}
+					assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName, err))
+				}
+			} else {
+				err := CopyFiles(sourceDir, destDir, testCase.doOverWrite)
+				if testCase.expectError {
+					assert.Error(t, err)
+					return
+				}
+				assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName, err))
+			}
+
+			for i, sourceFile := range sourceFiles {
+				destFile := filepath.Join(destDir, sourceSubDirName, path.Base(sourceFile))
+
+				content, err := os.ReadFile(destFile)
+				assert.NoError(t, err)
+
+				if !testCase.doOverWrite {
+					assert.Equal(t, string(content), fmt.Sprintf("do-not-overwrite-%v", i))
+				} else {
+					assert.Equal(t, string(content), fmt.Sprintf("test-%v", i))
+				}
+			}
+		})
+
 	}
 }
 
-func (s *TestSuite) TestCopyFile(c *C) {
-	fakeSourceParentDir := fake.CreateTempDirectory("", c)
+func TestCopyFile(t *testing.T) {
+	fakeSourceParentDir := fake.CreateTempDirectory("", t)
 	defer func() {
 		_ = os.RemoveAll(fakeSourceParentDir)
 	}()
 
-	fakeDestParentDir := fake.CreateTempDirectory("", c)
+	fakeDestParentDir := fake.CreateTempDirectory("", t)
 	defer func() {
 		_ = os.RemoveAll(fakeDestParentDir)
 	}()
@@ -284,89 +288,90 @@ func (s *TestSuite) TestCopyFile(c *C) {
 		expectedSameSize bool
 	}
 	testCases := map[string]testCase{
-		"CopyFile(...)": {},
-		"CopyFile(...): not existing source file": {
+		"Basic copy": {},
+		"Fails if source file does not exist": {
 			notExistingSourceFileName: "not-existing",
 			expectError:               true,
 		},
-		"CopyFile(...): not existing destination directory": {
+		"Creates destination directory if it does not exist": {
 			notExistingDestDirName: "should-create",
 			doOverWrite:            true,
 			expectedSameSize:       true,
 		},
-		"CopyFile(...): do overwrite": {
+		"Overwrite": {
 			doOverWrite:      true,
 			expectedSameSize: true,
 		},
-		"CopyFile(...): sparse file": {
+		"Handle sparse file": {
 			doOverWrite:      true,
 			sparseSize:       4097,
 			expectedSameSize: false,
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing io.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			fakeSourceDir := fake.CreateTempDirectory(fakeSourceParentDir, t)
+			fakeSourceFile := filepath.Join(fakeSourceDir, testCase.notExistingSourceFileName)
+			if testCase.notExistingSourceFileName == "" {
+				var fakeFile *os.File
+				if testCase.sparseSize != 0 {
+					fakeFile = fake.CreateTempSparseFile(fakeSourceDir, fmt.Sprintf("test-%v", time.Now().UnixNano()), testCase.sparseSize, "content", t)
+				} else {
+					fakeFile = fake.CreateTempFile(fakeSourceDir, fmt.Sprintf("test-%v", time.Now().UnixNano()), "content", t)
+				}
+				fakeSourceFile = fakeFile.Name()
+				_ = fakeFile.Close()
+			}
 
-		fakeSourceDir := fake.CreateTempDirectory(fakeSourceParentDir, c)
-		fakeSourceFile := filepath.Join(fakeSourceDir, testCase.notExistingSourceFileName)
-		if testCase.notExistingSourceFileName == "" {
-			var fakeFile *os.File
-			if testCase.sparseSize != 0 {
-				fakeFile = fake.CreateTempSparseFile(fakeSourceDir, fmt.Sprintf("test-%v", time.Now().UnixNano()), testCase.sparseSize, "content", c)
+			fakeDestDir := filepath.Join(fakeDestParentDir, testCase.notExistingDestDirName)
+			if testCase.notExistingDestDirName == "" {
+				fakeDestDir = fake.CreateTempDirectory(fakeDestParentDir, t)
+			}
+
+			if !testCase.doOverWrite && testCase.notExistingDestDirName == "" {
+				fake.CreateTempFile(fakeDestDir, filepath.Base(fakeSourceFile), "do-not-overwrite", t)
+			}
+
+			fakeDestPath := filepath.Join(fakeDestDir, filepath.Base(fakeSourceFile))
+			err := CopyFile(fakeSourceFile, fakeDestPath, testCase.doOverWrite)
+			if testCase.expectError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName, err))
+
+			destFile := filepath.Join(fakeDestDir, filepath.Base(fakeSourceFile))
+			content, err := os.ReadFile(destFile)
+			assert.NoError(t, err)
+
+			if !testCase.doOverWrite {
+				assert.Equal(t, string(content), "do-not-overwrite")
 			} else {
-				fakeFile = fake.CreateTempFile(fakeSourceDir, fmt.Sprintf("test-%v", time.Now().UnixNano()), "content", c)
+				expectedContent := "content"
+				if testCase.sparseSize != 0 {
+					expectedContent = expectedContent + strings.Repeat("\x00", int(testCase.sparseSize)-len(expectedContent))
+				}
+				assert.Equal(t, string(content), expectedContent)
+				err := CheckIsFileSizeSame(destFile, fakeSourceFile)
+				if testCase.expectedSameSize {
+					assert.NoError(t, err)
+				} else {
+					assert.Error(t, err)
+				}
 			}
-			fakeSourceFile = fakeFile.Name()
-			_ = fakeFile.Close()
-		}
+		})
 
-		fakeDestDir := filepath.Join(fakeDestParentDir, testCase.notExistingDestDirName)
-		if testCase.notExistingDestDirName == "" {
-			fakeDestDir = fake.CreateTempDirectory(fakeDestParentDir, c)
-		}
-
-		if !testCase.doOverWrite && testCase.notExistingDestDirName == "" {
-			fake.CreateTempFile(fakeDestDir, filepath.Base(fakeSourceFile), "do-not-overwrite", c)
-		}
-
-		fakeDestPath := filepath.Join(fakeDestDir, filepath.Base(fakeSourceFile))
-		err := CopyFile(fakeSourceFile, fakeDestPath, testCase.doOverWrite)
-		if testCase.expectError {
-			c.Assert(err, NotNil)
-			continue
-		}
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
-
-		destFile := filepath.Join(fakeDestDir, filepath.Base(fakeSourceFile))
-		content, err := os.ReadFile(destFile)
-		c.Assert(err, IsNil)
-
-		if !testCase.doOverWrite {
-			c.Assert(string(content), Equals, "do-not-overwrite")
-		} else {
-			expectedContent := "content"
-			if testCase.sparseSize != 0 {
-				expectedContent = expectedContent + strings.Repeat("\x00", int(testCase.sparseSize)-len(expectedContent))
-			}
-			c.Assert(string(content), Equals, expectedContent)
-			err := CheckIsFileSizeSame(destFile, fakeSourceFile)
-			if testCase.expectedSameSize {
-				c.Assert(err, IsNil)
-			} else {
-				c.Assert(err, NotNil)
-			}
-		}
 	}
 }
 
-func (s *TestSuite) TestFindFiles(c *C) {
-	fakeDir := fake.CreateTempDirectory("", c)
+func TestFindFiles(t *testing.T) {
+	fakeDir := fake.CreateTempDirectory("", t)
 	defer func() {
 		_ = os.RemoveAll(fakeDir)
 	}()
 
 	// Prepare sub directory
-	fakeDirSub := fake.CreateTempDirectory(fakeDir, c)
+	fakeDirSub := fake.CreateTempDirectory(fakeDir, t)
 
 	// Prepare 2 existing files in root of the fake directory,
 	// and 2 existing file in sub directory.
@@ -376,7 +381,7 @@ func (s *TestSuite) TestFindFiles(c *C) {
 	existingFilePaths[fakeDirSub] = true
 	for _, dir := range []string{fakeDir, fakeDirSub} {
 		for i := 0; i < existingFileCount; i++ {
-			file := fake.CreateTempFile(dir, fmt.Sprintf("test-%v", i), "content", c)
+			file := fake.CreateTempFile(dir, fmt.Sprintf("test-%v", i), "content", t)
 			existingFilePaths[file.Name()] = true
 			_ = file.Close()
 		}
@@ -390,7 +395,7 @@ func (s *TestSuite) TestFindFiles(c *C) {
 		expectError       bool
 	}
 	testCases := map[string]testCase{
-		"FindFiles(...)": {
+		"Find all files": {
 			expectedFilePaths: []string{
 				fakeDir,
 				filepath.Join(fakeDir, "test-0"),
@@ -400,14 +405,14 @@ func (s *TestSuite) TestFindFiles(c *C) {
 				filepath.Join(fakeDirSub, "test-1"),
 			},
 		},
-		"FindFiles(...): find file with name": {
+		"Find file with name": {
 			findFileWithName: "test-0",
 			expectedFilePaths: []string{
 				filepath.Join(fakeDir, "test-0"),
 				filepath.Join(fakeDirSub, "test-0"),
 			},
 		},
-		"FindFiles(...): max depth": {
+		"Max depth": {
 			maxDepth: 1,
 			expectedFilePaths: []string{
 				fakeDir,
@@ -418,38 +423,39 @@ func (s *TestSuite) TestFindFiles(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing io.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			result, err := FindFiles(fakeDir, testCase.findFileWithName, testCase.maxDepth)
+			if testCase.expectError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName, err))
+			assert.Equal(t, len(result), len(testCase.expectedFilePaths), Commentf(test.ErrResultFmt, testName))
+			for _, filePath := range result {
+				assert.True(t, existingFilePaths[filePath])
+			}
+		})
 
-		result, err := FindFiles(fakeDir, testCase.findFileWithName, testCase.maxDepth)
-		if testCase.expectError {
-			c.Assert(err, NotNil)
-			continue
-		}
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
-		c.Assert(len(result), Equals, len(testCase.expectedFilePaths), Commentf(test.ErrResultFmt, testName))
-		for _, filePath := range result {
-			c.Assert(existingFilePaths[filePath], Equals, true)
-		}
 	}
 }
 
-func (s *TestSuite) TestGetEmptyFiles(c *C) {
-	fakeDir := fake.CreateTempDirectory("", c)
+func TestGetEmptyFiles(t *testing.T) {
+	fakeDir := fake.CreateTempDirectory("", t)
 	defer func() {
 		_ = os.RemoveAll(fakeDir)
 	}()
 
-	fakeSubDir := fake.CreateTempDirectory(fakeDir, c)
+	fakeSubDir := fake.CreateTempDirectory(fakeDir, t)
 
-	fileWithContent := fake.CreateTempFile(fakeDir, "regular-file", "content", c)
+	fileWithContent := fake.CreateTempFile(fakeDir, "regular-file", "content", t)
 	err := fileWithContent.Close()
-	c.Assert(err, IsNil)
+	assert.NoError(t, err)
 
-	fileWithoutContent := fake.CreateTempFile(fakeDir, "empty-file-0", "", c)
+	fileWithoutContent := fake.CreateTempFile(fakeDir, "empty-file-0", "", t)
 	err = fileWithoutContent.Close()
-	c.Assert(err, IsNil)
+	assert.NoError(t, err)
 
-	fileWithoutContentInSubDir := fake.CreateTempFile(fakeSubDir, "empty-file-1", "", c)
+	fileWithoutContentInSubDir := fake.CreateTempFile(fakeSubDir, "empty-file-1", "", t)
 	defer func() {
 		_ = fileWithoutContentInSubDir.Close()
 	}()
@@ -460,38 +466,38 @@ func (s *TestSuite) TestGetEmptyFiles(c *C) {
 		expectError    bool
 	}
 	testCases := map[string]testCase{
-		"GetEmptyFiles(...)": {
+		"Valid directory": {
 			expectedResult: map[string]bool{
 				fileWithoutContent.Name():         true,
 				fileWithoutContentInSubDir.Name(): true,
 			},
 		},
-		"GetEmptyFiles(...): not existing directory": {
+		"Not existing directory": {
 			directory:   "not-existing-directory",
 			expectError: true,
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing io.%v", testName)
-
-		if testCase.directory == "" {
-			testCase.directory = fakeDir
-		}
-		result, err := GetEmptyFiles(testCase.directory)
-		if testCase.expectError {
-			c.Assert(err, NotNil)
-			continue
-		}
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
-		c.Assert(len(result), Equals, len(testCase.expectedResult), Commentf(test.ErrResultFmt, testName))
-		for _, filePath := range result {
-			c.Assert(testCase.expectedResult[filePath], Equals, true)
-		}
+		t.Run(testName, func(t *testing.T) {
+			if testCase.directory == "" {
+				testCase.directory = fakeDir
+			}
+			result, err := GetEmptyFiles(testCase.directory)
+			if testCase.expectError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName, err))
+			assert.Equal(t, len(result), len(testCase.expectedResult), Commentf(test.ErrResultFmt, testName))
+			for _, filePath := range result {
+				assert.True(t, testCase.expectedResult[filePath])
+			}
+		})
 	}
 }
 
-func (s *TestSuite) TestReadFileContent(c *C) {
-	fakeDir := fake.CreateTempDirectory("", c)
+func TestReadFileContent(t *testing.T) {
+	fakeDir := fake.CreateTempDirectory("", t)
 	defer func() {
 		_ = os.RemoveAll(fakeDir)
 	}()
@@ -504,38 +510,38 @@ func (s *TestSuite) TestReadFileContent(c *C) {
 		expectError bool
 	}
 	testCases := map[string]testCase{
-		"ReadFileContent(...)": {
+		"Valid file": {
 			isFileExist: true,
 		},
-		"ReadFileContent(...): not existing file": {
+		"Not existing file": {
 			isFileExist: false,
 			expectError: true,
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing io.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			expectedContent := fmt.Sprintf(fileContentFmt, testName)
 
-		expectedContent := fmt.Sprintf(fileContentFmt, testName)
+			filePath := filepath.Join(fakeDir, "not-exist")
+			if testCase.isFileExist {
+				file := fake.CreateTempFile(fakeDir, "", expectedContent, t)
+				filePath = file.Name()
+				_ = file.Close()
+			}
 
-		filePath := filepath.Join(fakeDir, "not-exist")
-		if testCase.isFileExist {
-			file := fake.CreateTempFile(fakeDir, "", expectedContent, c)
-			filePath = file.Name()
-			_ = file.Close()
-		}
-
-		content, err := ReadFileContent(filePath)
-		if testCase.expectError {
-			c.Assert(err, NotNil)
-			continue
-		}
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
-		c.Assert(content, Equals, expectedContent)
+			content, err := ReadFileContent(filePath)
+			if testCase.expectError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName, err))
+			assert.Equal(t, content, expectedContent)
+		})
 	}
 }
 
-func (s *TestSuite) TestSyncFile(c *C) {
-	fakeDir := fake.CreateTempDirectory("", c)
+func TestSyncFile(t *testing.T) {
+	fakeDir := fake.CreateTempDirectory("", t)
 	defer func() {
 		_ = os.RemoveAll(fakeDir)
 	}()
@@ -546,35 +552,35 @@ func (s *TestSuite) TestSyncFile(c *C) {
 		expectError bool
 	}
 	testCases := map[string]testCase{
-		"SyncFile(...)": {
+		"Existing file": {
 			isFileExist: true,
 		},
-		"SyncFile(...): not existing file": {
+		"Not existing file": {
 			isFileExist: false,
 			expectError: true,
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing io.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			filePath := filepath.Join(fakeDir, "not-exist")
+			if testCase.isFileExist {
+				file := fake.CreateTempFile(fakeDir, "", "content", t)
+				filePath = file.Name()
+				_ = file.Close()
+			}
 
-		filePath := filepath.Join(fakeDir, "not-exist")
-		if testCase.isFileExist {
-			file := fake.CreateTempFile(fakeDir, "", "content", c)
-			filePath = file.Name()
-			_ = file.Close()
-		}
-
-		err := SyncFile(filePath)
-		if testCase.expectError {
-			c.Assert(err, NotNil)
-			continue
-		}
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
+			err := SyncFile(filePath)
+			if testCase.expectError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName, err))
+		})
 	}
 }
 
-func (s *TestSuite) TestGetDiskStat(c *C) {
-	fakeDir := fake.CreateTempDirectory("", c)
+func TestGetDiskStat(t *testing.T) {
+	fakeDir := fake.CreateTempDirectory("", t)
 	defer func() {
 		_ = os.RemoveAll(fakeDir)
 	}()
@@ -584,45 +590,45 @@ func (s *TestSuite) TestGetDiskStat(c *C) {
 		expectError bool
 	}
 	testCases := map[string]testCase{
-		"GetDiskStat(...)": {
+		"Existing path": {
 			isPathExist: true,
 		},
-		"GetDiskStat(...): not existing path": {
+		"Not existing path": {
 			isPathExist: false,
 			expectError: true,
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing io.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			testDir := fake.CreateTempDirectory(fakeDir, t)
+			if !testCase.isPathExist {
+				_ = os.RemoveAll(testDir)
+			}
 
-		testDir := fake.CreateTempDirectory(fakeDir, c)
-		if !testCase.isPathExist {
-			_ = os.RemoveAll(testDir)
-		}
+			diskStat, err := GetDiskStat(testDir)
+			if testCase.expectError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName, err))
 
-		diskStat, err := GetDiskStat(testDir)
-		if testCase.expectError {
-			c.Assert(err, NotNil)
-			continue
-		}
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
+			expectedDiskStat, err := getDiskStat(testDir)
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName, err))
 
-		expectedDiskStat, err := getDiskStat(testDir)
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
+			// On the running system, FreeBlocks/StorageAvailable might be changing with time.
+			// So we only compare the following fields
+			assert.Equal(t, diskStat.DiskID, expectedDiskStat.DiskID)
+			assert.Equal(t, diskStat.Path, expectedDiskStat.Path)
 
-		// On the running system, FreeBlocks/StorageAvailable might be changing with time.
-		// So we only compare the following fields
-		c.Assert(diskStat.DiskID, Equals, expectedDiskStat.DiskID)
-		c.Assert(diskStat.Path, Equals, expectedDiskStat.Path)
+			// FIXME: overlayfs is not supported in the github.com/shirou/gopsutil/v3
+			if expectedDiskStat.Type != "overlayfs" {
+				assert.Equal(t, diskStat.Type, expectedDiskStat.Type)
+			}
 
-		// FIXME: overlayfs is not supported in the github.com/shirou/gopsutil/v3
-		if expectedDiskStat.Type != "overlayfs" {
-			c.Assert(diskStat.Type, Equals, expectedDiskStat.Type)
-		}
-
-		c.Assert(diskStat.TotalBlocks, Equals, expectedDiskStat.TotalBlocks)
-		c.Assert(diskStat.BlockSize, Equals, expectedDiskStat.BlockSize)
-		c.Assert(diskStat.StorageMaximum, Equals, expectedDiskStat.StorageMaximum)
+			assert.Equal(t, diskStat.TotalBlocks, expectedDiskStat.TotalBlocks)
+			assert.Equal(t, diskStat.BlockSize, expectedDiskStat.BlockSize)
+			assert.Equal(t, diskStat.StorageMaximum, expectedDiskStat.StorageMaximum)
+		})
 	}
 }
 
@@ -661,8 +667,8 @@ func getDiskStat(path string) (*types.DiskStat, error) {
 	}, nil
 }
 
-func (s *TestSuite) TestListOpenFiles(c *C) {
-	fakeDir := fake.CreateTempDirectory("", c)
+func TestListOpenFiles(t *testing.T) {
+	fakeDir := fake.CreateTempDirectory("", t)
 	defer func() {
 		_ = os.RemoveAll(fakeDir)
 	}()
@@ -682,28 +688,28 @@ func (s *TestSuite) TestListOpenFiles(c *C) {
 	// 2. close: contains 2 closed files
 	fakeDirs := _fakeDirs{
 		open: _dirInfo{
-			dir: fake.CreateTempDirectory(fakeDir, c),
+			dir: fake.CreateTempDirectory(fakeDir, t),
 		},
 		close: _dirInfo{
-			dir: fake.CreateTempDirectory(fakeDir, c),
+			dir: fake.CreateTempDirectory(fakeDir, t),
 		},
 	}
 
-	fakeDirs.open.files = append(fakeDirs.open.files, fake.CreateTempFile(fakeDirs.open.dir, "file1", "content", c))
-	fakeDirs.open.files = append(fakeDirs.open.files, fake.CreateTempFile(fakeDirs.open.dir, "file2", "content", c))
+	fakeDirs.open.files = append(fakeDirs.open.files, fake.CreateTempFile(fakeDirs.open.dir, "file1", "content", t))
+	fakeDirs.open.files = append(fakeDirs.open.files, fake.CreateTempFile(fakeDirs.open.dir, "file2", "content", t))
 	defer func() {
 		for _, file := range fakeDirs.open.files {
 			err := file.Close()
-			c.Assert(err, IsNil)
+			assert.NoError(t, err)
 		}
 	}()
 
 	// Create and close files in the close directory
-	fakeDirs.close.files = append(fakeDirs.close.files, fake.CreateTempFile(fakeDirs.close.dir, "file1", "content", c))
-	fakeDirs.close.files = append(fakeDirs.close.files, fake.CreateTempFile(fakeDirs.close.dir, "file2", "content", c))
+	fakeDirs.close.files = append(fakeDirs.close.files, fake.CreateTempFile(fakeDirs.close.dir, "file1", "content", t))
+	fakeDirs.close.files = append(fakeDirs.close.files, fake.CreateTempFile(fakeDirs.close.dir, "file2", "content", t))
 	for _, file := range fakeDirs.close.files {
 		err := file.Close()
-		c.Assert(err, IsNil)
+		assert.NoError(t, err)
 	}
 
 	time.Sleep(100 * time.Millisecond)
@@ -714,46 +720,46 @@ func (s *TestSuite) TestListOpenFiles(c *C) {
 		expectError       bool
 	}
 	testCases := map[string]testCase{
-		"ListOpenFiles(...)": {
+		"Existing directory with open files": {
 			directory: fakeDir,
 			expectedOpenFiles: []string{
 				filepath.Join(fakeDirs.open.dir, "file1"),
 				filepath.Join(fakeDirs.open.dir, "file2"),
 			},
 		},
-		"ListOpenFiles(...): not existing path": {
+		"Not existing path": {
 			directory:   "not-existing-path",
 			expectError: true,
 		},
-		"ListOpenFiles(...): no open files": {
+		"No open files": {
 			directory:   fakeDirs.close.dir,
 			expectError: false,
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing io.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			if testCase.directory == "" {
+				testCase.directory = fakeDir
+			}
 
-		if testCase.directory == "" {
-			testCase.directory = fakeDir
-		}
-
-		openFiles, err := ListOpenFiles("/proc", testCase.directory)
-		if testCase.expectError {
-			c.Assert(err, NotNil)
-			continue
-		}
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
-		c.Assert(len(openFiles), Equals, len(testCase.expectedOpenFiles),
-			Commentf(test.ErrResultFmt, fmt.Sprintf("%s: %v", testName, openFiles)),
-		)
-		for i, openFile := range openFiles {
-			c.Assert(openFile, Equals, testCase.expectedOpenFiles[i])
-		}
+			openFiles, err := ListOpenFiles("/proc", testCase.directory)
+			if testCase.expectError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, len(openFiles), len(testCase.expectedOpenFiles),
+				Commentf(test.ErrResultFmt, fmt.Sprintf("%s: %v", testName, openFiles)),
+			)
+			for i, openFile := range openFiles {
+				assert.Equal(t, openFile, testCase.expectedOpenFiles[i])
+			}
+		})
 	}
 }
 
-func (s *TestSuite) TestIsDirectoryEmpty(c *C) {
-	fakeDir := fake.CreateTempDirectory("", c)
+func TestIsDirectoryEmpty(t *testing.T) {
+	fakeDir := fake.CreateTempDirectory("", t)
 	defer func() {
 		_ = os.RemoveAll(fakeDir)
 	}()
@@ -765,46 +771,46 @@ func (s *TestSuite) TestIsDirectoryEmpty(c *C) {
 		expectResult bool
 	}
 	testCases := map[string]testCase{
-		"IsDirectoryEmpty(...)": {
+		"Empty directory": {
 			isEmpty:      true,
 			expectResult: true,
 		},
-		"IsDirectoryEmpty(...): not empty": {
+		"Not empty directory": {
 			isEmpty:      false,
 			expectResult: false,
 		},
-		"IsDirectoryEmpty(...): not existing path": {
+		"Not existing path": {
 			isNotExist:   true,
 			expectError:  true,
 			expectResult: false,
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing io.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			testDir := fake.CreateTempDirectory(fakeDir, t)
 
-		testDir := fake.CreateTempDirectory(fakeDir, c)
+			if !testCase.isEmpty {
+				fake.CreateTempFile(testDir, "file", "content", t)
+			}
 
-		if !testCase.isEmpty {
-			fake.CreateTempFile(testDir, "file", "content", c)
-		}
+			if testCase.isNotExist {
+				err := os.RemoveAll(testDir)
+				assert.NoError(t, err)
+			}
 
-		if testCase.isNotExist {
-			err := os.RemoveAll(testDir)
-			c.Assert(err, IsNil)
-		}
-
-		result, err := IsDirectoryEmpty(testDir)
-		if testCase.expectError {
-			c.Assert(err, NotNil)
-			continue
-		}
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
-		c.Assert(result, Equals, testCase.expectResult, Commentf(test.ErrResultFmt, testName))
+			result, err := IsDirectoryEmpty(testDir)
+			if testCase.expectError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, result, testCase.expectResult)
+		})
 	}
 }
 
-func (s *TestSuite) TestCheckIsFileSizeSame(c *C) {
-	fakeDir := fake.CreateTempDirectory("", c)
+func TestCheckIsFileSizeSame(t *testing.T) {
+	fakeDir := fake.CreateTempDirectory("", t)
 	defer func() {
 		_ = os.RemoveAll(fakeDir)
 	}()
@@ -817,54 +823,54 @@ func (s *TestSuite) TestCheckIsFileSizeSame(c *C) {
 		expectError bool
 	}
 	testCases := map[string]testCase{
-		"CheckIsFileSizeSame(...)": {},
-		"CheckIsFileSizeSame(...): not existing path": {
+		"File sizes are same": {},
+		"Not existing path": {
 			notFileExist: true,
 			expectError:  true,
 		},
-		"CheckIsFileSizeSame(...): different size": {
+		"Different size": {
 			isDifferent: true,
 			expectError: true,
 		},
-		"CheckIsFileSizeSame(...): directory": {
+		"Directory": {
 			isDirectory: true,
 			expectError: true,
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing io.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			testDir := fake.CreateTempDirectory(fakeDir, t)
 
-		testDir := fake.CreateTempDirectory(fakeDir, c)
+			fileName1 := "file1"
+			fileName2 := "file2"
 
-		fileName1 := "file1"
-		fileName2 := "file2"
+			var file1 *os.File
+			var file2 *os.File
+			switch {
+			case testCase.isDifferent:
+				file1 = fake.CreateTempFile(testDir, fileName1, "content", t)
+				file2 = fake.CreateTempFile(testDir, fileName2, "different-content", t)
+			default:
+				file1 = fake.CreateTempFile(testDir, fileName1, "content", t)
+				file2 = fake.CreateTempFile(testDir, fileName2, "content", t)
+			}
 
-		var file1 *os.File
-		var file2 *os.File
-		switch {
-		case testCase.isDifferent:
-			file1 = fake.CreateTempFile(testDir, fileName1, "content", c)
-			file2 = fake.CreateTempFile(testDir, fileName2, "different-content", c)
-		default:
-			file1 = fake.CreateTempFile(testDir, fileName1, "content", c)
-			file2 = fake.CreateTempFile(testDir, fileName2, "content", c)
-		}
+			if testCase.notFileExist {
+				err := os.RemoveAll(testDir)
+				assert.NoError(t, err)
+			}
 
-		if testCase.notFileExist {
-			err := os.RemoveAll(testDir)
-			c.Assert(err, IsNil)
-		}
-
-		var err error
-		if testCase.isDirectory {
-			err = CheckIsFileSizeSame(file1.Name(), file2.Name(), testDir)
-		} else {
-			err = CheckIsFileSizeSame(file1.Name(), file2.Name())
-		}
-		if testCase.expectError {
-			c.Assert(err, NotNil)
-			continue
-		}
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
+			var err error
+			if testCase.isDirectory {
+				err = CheckIsFileSizeSame(file1.Name(), file2.Name(), testDir)
+			} else {
+				err = CheckIsFileSizeSame(file1.Name(), file2.Name())
+			}
+			if testCase.expectError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName, err))
+		})
 	}
 }
