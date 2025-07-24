@@ -2,28 +2,27 @@ package ns
 
 import (
 	"fmt"
-
-	. "gopkg.in/check.v1"
+	"testing"
 
 	"github.com/longhorn/go-common-libs/types"
 )
 
-func testCaseGetArch(c *C) map[string]testCaseNamespaceMethods {
+func testCaseGetArch(t *testing.T) map[string]testCaseNamespaceMethods {
 	return map[string]testCaseNamespaceMethods{
-		"GetGetArch(...)": {
+		"GetArch/Local": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return GetArch()
 			},
 			mockResult: "result",
 		},
-		"GetArch(...): failed to run": {
+		"GetArch/Failed to run": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return GetArch()
 			},
 			mockError:   fmt.Errorf("failed"),
 			expectError: true,
 		},
-		"GetArch(...): failed to cast result": {
+		"GetArch/Failed to cast result": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return GetArch()
 			},
@@ -33,22 +32,22 @@ func testCaseGetArch(c *C) map[string]testCaseNamespaceMethods {
 	}
 }
 
-func testCaseKernelRelease(c *C) map[string]testCaseNamespaceMethods {
+func testCaseKernelRelease(t *testing.T) map[string]testCaseNamespaceMethods {
 	return map[string]testCaseNamespaceMethods{
-		"GetKernelRelease(...)": {
+		"GetKernelRelease/Local": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return GetKernelRelease()
 			},
 			mockResult: "result",
 		},
-		"GetKernelRelease(...): failed to run": {
+		"GetKernelRelease/Failed to run": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return GetKernelRelease()
 			},
 			mockError:   fmt.Errorf("failed"),
 			expectError: true,
 		},
-		"GetKernelRelease(...): failed to cast result": {
+		"GetKernelRelease/Failed to cast result": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return GetKernelRelease()
 			},
@@ -58,9 +57,9 @@ func testCaseKernelRelease(c *C) map[string]testCaseNamespaceMethods {
 	}
 }
 
-func testCaseSync(c *C) map[string]testCaseNamespaceMethods {
+func testCaseSync(t *testing.T) map[string]testCaseNamespaceMethods {
 	return map[string]testCaseNamespaceMethods{
-		"Sync(...)": {
+		"Sync/Local": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return nil, Sync()
 			},
@@ -68,9 +67,9 @@ func testCaseSync(c *C) map[string]testCaseNamespaceMethods {
 	}
 }
 
-func testCaseGetOSDistro(c *C) map[string]testCaseNamespaceMethods {
+func testCaseGetOSDistro(t *testing.T) map[string]testCaseNamespaceMethods {
 	return map[string]testCaseNamespaceMethods{
-		"GetOSDistro(...)": {
+		"GetOSDistro/SLES": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return GetOSDistro()
 			},
@@ -81,14 +80,14 @@ ID="sles"
 ID_LIKE="suse"`,
 			expected: "sles",
 		},
-		"GetOSDistro(...): failed to run": {
+		"GetOSDistro/Failed to run": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return GetOSDistro()
 			},
 			mockError:   fmt.Errorf("failed"),
 			expectError: true,
 		},
-		"GetOSDistro(...): failed to cast result": {
+		"GetOSDistro/Failed to cast result": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return GetOSDistro()
 			},
@@ -98,9 +97,9 @@ ID_LIKE="suse"`,
 	}
 }
 
-func testCaseGetSystemBlockDevices(c *C) map[string]testCaseNamespaceMethods {
+func testCaseGetSystemBlockDevices(t *testing.T) map[string]testCaseNamespaceMethods {
 	return map[string]testCaseNamespaceMethods{
-		"GetSystemBlockDevices(...)": {
+		"GetSystemBlockDevices/Local": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return GetSystemBlockDevices()
 			},
@@ -109,14 +108,14 @@ func testCaseGetSystemBlockDevices(c *C) map[string]testCaseNamespaceMethods {
 			},
 			mockError: nil,
 		},
-		"GetSystemBlockDevices(...): failed to run": {
+		"GetSystemBlockDevices/Failed to run": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return GetSystemBlockDevices()
 			},
 			mockError:   fmt.Errorf("failed"),
 			expectError: true,
 		},
-		"GetSystemBlockDevices(...): failed to cast result": {
+		"GetSystemBlockDevices/Failed to cast result": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return GetSystemBlockDevices()
 			},

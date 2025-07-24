@@ -2,18 +2,19 @@ package ns
 
 import (
 	"os"
+	"testing"
 	"time"
 
-	. "gopkg.in/check.v1"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/longhorn/go-common-libs/test/fake"
 )
 
-func (s *TestSuite) TestFileLock(c *C) {
-	fakeDir := fake.CreateTempDirectory("", c)
+func TestFileLock(t *testing.T) {
+	fakeDir := fake.CreateTempDirectory("", t)
 	defer func() {
 		errRemove := os.RemoveAll(fakeDir)
-		c.Assert(errRemove, IsNil)
+		assert.NoError(t, errRemove)
 	}()
 
 	type testCase struct {
@@ -21,33 +22,34 @@ func (s *TestSuite) TestFileLock(c *C) {
 		expectError bool
 	}
 	testCases := map[string]testCase{
-		"File Lock/Unlock(...)": {},
-		"File Lock(...): timeout": {
+		"Valid Lock": {},
+		"Timeout": {
 			timeout:     time.Second,
 			expectError: true,
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing namespace.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			fakeFile := fake.CreateTempFile(fakeDir, "", "content", t)
 
-		fakeFile := fake.CreateTempFile(fakeDir, "", "content", c)
+			NewJoiner = func(string, time.Duration) (JoinerInterface, error) {
+				return &fake.Joiner{
+					MockDelay:  testCase.timeout + time.Second,
+					MockResult: fakeFile,
+				}, nil
+			}
 
-		NewJoiner = func(string, time.Duration) (JoinerInterface, error) {
-			return &fake.Joiner{
-				MockDelay:  testCase.timeout + time.Second,
-				MockResult: fakeFile,
-			}, nil
-		}
+			lock := NewLock(fakeFile.Name(), testCase.timeout)
 
-		lock := NewLock(fakeFile.Name(), testCase.timeout)
+			err := lock.Lock()
+			if testCase.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
 
-		err := lock.Lock()
-		if testCase.expectError {
-			c.Assert(err, NotNil)
-		} else {
-			c.Assert(err, IsNil)
-		}
+			lock.Unlock()
+		})
 
-		lock.Unlock()
 	}
 }
