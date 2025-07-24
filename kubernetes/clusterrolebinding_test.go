@@ -2,8 +2,10 @@ package kubernetes
 
 import (
 	"context"
+	"testing"
 
 	"github.com/longhorn/go-common-libs/test"
+	"github.com/stretchr/testify/assert"
 	. "gopkg.in/check.v1"
 
 	"k8s.io/client-go/kubernetes/fake"
@@ -13,7 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (s *TestSuite) TestCreateClusterRoleBinding(c *C) {
+func TestCreateClusterRoleBinding(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -22,14 +24,14 @@ func (s *TestSuite) TestCreateClusterRoleBinding(c *C) {
 		IsAlreadyExists    bool
 	}
 	testCases := map[string]testCase{
-		"CreateClusterRoleBinding(...):": {
+		"Existing": {
 			clusterRoleBinding: &rbacv1.ClusterRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test",
 				},
 			},
 		},
-		"CreateClusterRoleBinding(...): already exists": {
+		"Already exists": {
 			clusterRoleBinding: &rbacv1.ClusterRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test",
@@ -39,26 +41,26 @@ func (s *TestSuite) TestCreateClusterRoleBinding(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing kubernetes.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			kubeClient := fake.NewSimpleClientset()
 
-		kubeClient := fake.NewSimpleClientset()
+			if testCase.IsAlreadyExists {
+				_, err := kubeClient.RbacV1().ClusterRoleBindings().Create(ctx, testCase.clusterRoleBinding, metav1.CreateOptions{})
+				assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName))
+			}
 
-		if testCase.IsAlreadyExists {
-			_, err := kubeClient.RbacV1().ClusterRoleBindings().Create(ctx, testCase.clusterRoleBinding, metav1.CreateOptions{})
-			c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
-		}
+			clusterRoleBinding, err := CreateClusterRoleBinding(kubeClient, testCase.clusterRoleBinding)
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName))
+			assert.NotNil(t, clusterRoleBinding, Commentf(test.ErrResultFmt, testName))
 
-		clusterRoleBinding, err := CreateClusterRoleBinding(kubeClient, testCase.clusterRoleBinding)
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
-		c.Assert(clusterRoleBinding, NotNil, Commentf(test.ErrResultFmt, testName))
-
-		clusterRoleBinding, err = kubeClient.RbacV1().ClusterRoleBindings().Get(ctx, testCase.clusterRoleBinding.Name, metav1.GetOptions{})
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
-		c.Assert(clusterRoleBinding.Name, Equals, testCase.clusterRoleBinding.Name, Commentf(test.ErrResultFmt, testName))
+			clusterRoleBinding, err = kubeClient.RbacV1().ClusterRoleBindings().Get(ctx, testCase.clusterRoleBinding.Name, metav1.GetOptions{})
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName))
+			assert.Equal(t, clusterRoleBinding.Name, testCase.clusterRoleBinding.Name, Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }
 
-func (s *TestSuite) TestDeleteClusterRoleBinding(c *C) {
+func TestDeleteClusterRoleBinding(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -67,14 +69,14 @@ func (s *TestSuite) TestDeleteClusterRoleBinding(c *C) {
 		expectNotFound     bool
 	}
 	testCases := map[string]testCase{
-		"DeleteClusterRoleBinding(...):": {
+		"Existing": {
 			clusterRoleBinding: &rbacv1.ClusterRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test",
 				},
 			},
 		},
-		"DeleteClusterRoleBinding(...): not found": {
+		"Not found": {
 			clusterRoleBinding: &rbacv1.ClusterRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test",
@@ -84,28 +86,28 @@ func (s *TestSuite) TestDeleteClusterRoleBinding(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing kubernetes.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			kubeClient := fake.NewSimpleClientset()
 
-		kubeClient := fake.NewSimpleClientset()
+			if !testCase.expectNotFound {
+				_, err := kubeClient.RbacV1().ClusterRoleBindings().Create(ctx, testCase.clusterRoleBinding, metav1.CreateOptions{})
+				assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName))
 
-		if !testCase.expectNotFound {
-			_, err := kubeClient.RbacV1().ClusterRoleBindings().Create(ctx, testCase.clusterRoleBinding, metav1.CreateOptions{})
-			c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
+				clusterRoleBinding, err := kubeClient.RbacV1().ClusterRoleBindings().Get(ctx, testCase.clusterRoleBinding.Name, metav1.GetOptions{})
+				assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName))
+				assert.Equal(t, clusterRoleBinding.Name, testCase.clusterRoleBinding.Name, Commentf(test.ErrResultFmt, testName))
+			}
 
-			clusterRoleBinding, err := kubeClient.RbacV1().ClusterRoleBindings().Get(ctx, testCase.clusterRoleBinding.Name, metav1.GetOptions{})
-			c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
-			c.Assert(clusterRoleBinding.Name, Equals, testCase.clusterRoleBinding.Name, Commentf(test.ErrResultFmt, testName))
-		}
+			err := DeleteClusterRoleBinding(kubeClient, testCase.clusterRoleBinding.Name)
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName))
 
-		err := DeleteClusterRoleBinding(kubeClient, testCase.clusterRoleBinding.Name)
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
-
-		_, err = kubeClient.RbacV1().ClusterRoleBindings().Get(ctx, testCase.clusterRoleBinding.Name, metav1.GetOptions{})
-		c.Assert(apierrors.IsNotFound(err), Equals, true, Commentf(test.ErrResultFmt, testName))
+			_, err = kubeClient.RbacV1().ClusterRoleBindings().Get(ctx, testCase.clusterRoleBinding.Name, metav1.GetOptions{})
+			assert.True(t, apierrors.IsNotFound(err), Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }
 
-func (s *TestSuite) TestGetClusterRoleBinding(c *C) {
+func TestGetClusterRoleBinding(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -114,14 +116,14 @@ func (s *TestSuite) TestGetClusterRoleBinding(c *C) {
 		expectNotFound     bool
 	}
 	testCases := map[string]testCase{
-		"GetClusterRoleBinding(...):": {
+		"Existing": {
 			clusterRoleBinding: &rbacv1.ClusterRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test",
 				},
 			},
 		},
-		"GetClusterRoleBinding(...): not found": {
+		"Not found": {
 			clusterRoleBinding: &rbacv1.ClusterRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test",
@@ -131,21 +133,21 @@ func (s *TestSuite) TestGetClusterRoleBinding(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing kubernetes.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			kubeClient := fake.NewSimpleClientset()
 
-		kubeClient := fake.NewSimpleClientset()
+			if !testCase.expectNotFound {
+				_, err := kubeClient.RbacV1().ClusterRoleBindings().Create(ctx, testCase.clusterRoleBinding, metav1.CreateOptions{})
+				assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName))
+			}
 
-		if !testCase.expectNotFound {
-			_, err := kubeClient.RbacV1().ClusterRoleBindings().Create(ctx, testCase.clusterRoleBinding, metav1.CreateOptions{})
-			c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
-		}
-
-		clusterRoleBinding, err := GetClusterRoleBinding(kubeClient, testCase.clusterRoleBinding.Name)
-		if testCase.expectNotFound {
-			c.Assert(apierrors.IsNotFound(err), Equals, true, Commentf(test.ErrResultFmt, testName))
-			return
-		}
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
-		c.Assert(clusterRoleBinding.Name, Equals, testCase.clusterRoleBinding.Name, Commentf(test.ErrResultFmt, testName))
+			clusterRoleBinding, err := GetClusterRoleBinding(kubeClient, testCase.clusterRoleBinding.Name)
+			if testCase.expectNotFound {
+				assert.True(t, apierrors.IsNotFound(err), Commentf(test.ErrResultFmt, testName))
+				return
+			}
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName))
+			assert.Equal(t, clusterRoleBinding.Name, testCase.clusterRoleBinding.Name, Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }
