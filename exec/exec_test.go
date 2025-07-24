@@ -5,19 +5,12 @@ import (
 	"testing"
 	"time"
 
-	. "gopkg.in/check.v1"
+	"github.com/stretchr/testify/assert"
 
-	"github.com/longhorn/go-common-libs/test"
 	"github.com/longhorn/go-common-libs/types"
 )
 
-func Test(t *testing.T) { TestingT(t) }
-
-type TestSuite struct{}
-
-var _ = Suite(&TestSuite{})
-
-func (s *TestSuite) TestExecute(c *C) {
+func TestExecute(t *testing.T) {
 	type testCase struct {
 		command []string
 		timeout time.Duration
@@ -26,42 +19,43 @@ func (s *TestSuite) TestExecute(c *C) {
 		expectedErrorPrefix string
 	}
 	testCases := map[string]testCase{
-		"Execute(...)": {
+		"Valid command": {
 			command:  []string{"echo", "hello"},
 			timeout:  types.ExecuteNoTimeout,
 			expected: "hello\n",
 		},
-		"Execute(...) with error": {
+		"With error": {
 			command:             []string{"ls", "/not-exist"},
 			timeout:             types.ExecuteNoTimeout,
 			expectedErrorPrefix: "failed to execute",
 		},
-		"Execute(...): with timeout": {
+		"With timeout": {
 			command: []string{"sleep", "1"},
 			timeout: 2 * time.Second,
 		},
-		"Execute(...): with timeout and error": {
+		"With timeout and error": {
 			command:             []string{"sleep", "1"},
 			timeout:             time.Nanosecond,
 			expectedErrorPrefix: "timeout executing",
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing exec.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			executor := NewExecutor()
+			output, err := executor.Execute(nil, testCase.command[0], testCase.command[1:], testCase.timeout)
+			if testCase.expectedErrorPrefix != "" {
+				assert.Error(t, err)
+				assert.True(t, strings.HasPrefix(err.Error(), testCase.expectedErrorPrefix))
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, testCase.expected, output)
 
-		executor := NewExecutor()
-		output, err := executor.Execute(nil, testCase.command[0], testCase.command[1:], testCase.timeout)
-		if testCase.expectedErrorPrefix != "" {
-			c.Assert(err, NotNil)
-			c.Assert(strings.HasPrefix(err.Error(), testCase.expectedErrorPrefix), Equals, true, Commentf(test.ErrErrorFmt, testName))
-			continue
-		}
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
-		c.Assert(output, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }
 
-func (s *TestSuite) TestExecuteWithStdin(c *C) {
+func TestExecuteWithStdin(t *testing.T) {
 	type testCase struct {
 		commandStdin string
 		timeout      time.Duration
@@ -70,35 +64,34 @@ func (s *TestSuite) TestExecuteWithStdin(c *C) {
 		expectError bool
 	}
 	testCases := map[string]testCase{
-		"ExecuteWithStdin(...)": {
+		"Echo stdin input": {
 			commandStdin: "foo",
 			expected:     "foo\n",
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing exec.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			if testCase.timeout == 0 {
+				testCase.timeout = types.ExecuteDefaultTimeout
+			}
 
-		if testCase.timeout == 0 {
-			testCase.timeout = types.ExecuteDefaultTimeout
-		}
+			executor := NewExecutor()
 
-		executor := NewExecutor()
+			binary := "bash"
+			args := []string{"-c", "read input; echo ${input}"}
+			output, err := executor.ExecuteWithStdin(binary, args, testCase.commandStdin, testCase.timeout)
+			if testCase.expectError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
 
-		binary := "bash"
-		args := []string{"-c", "read input; echo ${input}"}
-		output, err := executor.ExecuteWithStdin(binary, args, testCase.commandStdin, testCase.timeout)
-		if testCase.expectError {
-			c.Assert(err, NotNil)
-			continue
-		}
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
-
-		c.Assert(output, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
-
+			assert.Equal(t, testCase.expected, output)
+		})
 	}
 }
 
-func (s *TestSuite) TestExecuteWithStdinPipe(c *C) {
+func TestExecuteWithStdinPipe(t *testing.T) {
 	type testCase struct {
 		command      []string
 		commandStdin string
@@ -108,12 +101,12 @@ func (s *TestSuite) TestExecuteWithStdinPipe(c *C) {
 		expectError bool
 	}
 	testCases := map[string]testCase{
-		"ExecuteWithStdinPipe(...)": {
+		"Counts stdin bytes using wc": {
 			command:      []string{"wc", "-c"},
 			commandStdin: "count me",
 			expected:     "8\n",
 		},
-		"ExecuteWithStdinPipe(...): timeout": {
+		"Command times out": {
 			command:      []string{"sleep", "1"},
 			commandStdin: "ignore me",
 			timeout:      time.Nanosecond,
@@ -121,22 +114,22 @@ func (s *TestSuite) TestExecuteWithStdinPipe(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing exec.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			if testCase.timeout == 0 {
+				testCase.timeout = types.ExecuteDefaultTimeout
+			}
 
-		if testCase.timeout == 0 {
-			testCase.timeout = types.ExecuteDefaultTimeout
-		}
+			executor := NewExecutor()
 
-		executor := NewExecutor()
+			output, err := executor.ExecuteWithStdinPipe(testCase.command[0], testCase.command[1:], testCase.commandStdin, testCase.timeout)
+			if testCase.expectError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
 
-		output, err := executor.ExecuteWithStdinPipe(testCase.command[0], testCase.command[1:], testCase.commandStdin, testCase.timeout)
-		if testCase.expectError {
-			c.Assert(err, NotNil)
-			continue
-		}
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
+			assert.Equal(t, testCase.expected, output)
 
-		c.Assert(output, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
-
+		})
 	}
 }
