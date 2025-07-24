@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	. "gopkg.in/check.v1"
 
 	"github.com/longhorn/go-common-libs/test"
@@ -15,55 +16,55 @@ type TestSuite struct{}
 
 var _ = Suite(&TestSuite{})
 
-func (s *TestSuite) TestGetProcessPID(c *C) {
+func TestGetProcessPID(t *testing.T) {
 	type testCase struct {
 		process  string
 		procPath string
 	}
 	testCases := map[string]testCase{
-		"GetProcessPIDs(...)": {
+		"Go": {
 			process:  "go",
 			procPath: "/proc",
 		},
-		"GetProcessPIDs(...): fallback when process not found": {
+		"Fallback when process not found": {
 			process:  "not-exist",
 			procPath: "/proc",
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing proc.%v", testName)
-
-		result, err := GetProcessPIDs(testCase.process, testCase.procPath)
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
-		c.Assert(len(result), Not(Equals), 0, Commentf(test.ErrResultFmt, testName))
+		t.Run(testName, func(t *testing.T) {
+			result, err := GetProcessPIDs(testCase.process, testCase.procPath)
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName, err))
+			assert.NotEmpty(t, result, Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }
 
-func (s *TestSuite) TestGetHostNamespacePid(c *C) {
+func TestGetHostNamespacePid(t *testing.T) {
 	type testCase struct {
 		procPath string
 
 		expected uint64
 	}
 	testCases := map[string]testCase{
-		"GetHostNamespacePID(...)": {
+		"Current process": {
 			procPath: "/proc",
 			expected: 1,
 		},
-		"GetHostNamespacePID(...): fallback": {
+		"Fallback when process path not found": {
 			procPath: "/not-exist",
 			expected: 1,
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing proc.%v", testName)
-
-		result := GetHostNamespacePID(testCase.procPath)
-		c.Assert(result, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
+		t.Run(testName, func(t *testing.T) {
+			result := GetHostNamespacePID(testCase.procPath)
+			assert.Equal(t, testCase.expected, result, Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }
 
-func (s *TestSuite) TestGetProcessAncestorNamespaceDirectory(c *C) {
+func TestGetProcessAncestorNamespaceDirectory(t *testing.T) {
 	type testCase struct {
 		process  string
 		procPath string
@@ -71,7 +72,7 @@ func (s *TestSuite) TestGetProcessAncestorNamespaceDirectory(c *C) {
 		expected string
 	}
 	testCases := map[string]testCase{
-		"GetProcessAncestorNamespaceDirectory(...)": {
+		"Current process": {
 			process:  "go",
 			procPath: "/proc",
 			// expected: "/proc/1/ns",
@@ -79,29 +80,30 @@ func (s *TestSuite) TestGetProcessAncestorNamespaceDirectory(c *C) {
 	}
 
 	for testName, testCase := range testCases {
-		c.Logf("testing proc.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			result, err := GetProcessAncestorNamespaceDirectory(testCase.process, testCase.procPath)
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName, err))
 
-		result, err := GetProcessAncestorNamespaceDirectory(testCase.process, testCase.procPath)
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
+			if testCase.expected == "" {
+				p, err := FindProcessByName(testCase.process)
+				assert.NoError(t, err)
+				testCase.expected = fmt.Sprintf("/proc/%d/ns", p.Pid)
+			}
 
-		if testCase.expected == "" {
-			p, err := FindProcessByName(testCase.process)
-			c.Assert(err, IsNil)
-			testCase.expected = fmt.Sprintf("/proc/%d/ns", p.Pid)
-		}
+			assert.Equal(t, testCase.expected, result, Commentf(test.ErrResultFmt, testName))
 
-		c.Assert(result, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
+			ps, err := FindProcessByCmdline(testCase.process)
+			assert.NoError(t, err)
+			assert.Equal(t, 1, len(ps))
+			if len(ps) > 0 {
+				assert.Equal(t, fmt.Sprintf("/proc/%d/ns", ps[0].Pid), result, Commentf(test.ErrResultFmt, testName))
+			}
+		})
 
-		ps, err := FindProcessByCmdline(testCase.process)
-		c.Assert(err, IsNil)
-		c.Assert(len(ps), Equals, 1)
-		if len(ps) > 0 {
-			c.Assert(result, Equals, fmt.Sprintf("/proc/%d/ns", ps[0].Pid), Commentf(test.ErrResultFmt, testName))
-		}
 	}
 }
 
-func (s *TestSuite) TestGetProcessNamespaceDirectory(c *C) {
+func TestGetProcessNamespaceDirectory(t *testing.T) {
 	type testCase struct {
 		process  string
 		procPath string
@@ -109,27 +111,27 @@ func (s *TestSuite) TestGetProcessNamespaceDirectory(c *C) {
 		expected string
 	}
 	testCases := map[string]testCase{
-		"GetProcessNamespaceDirectory(...)": {
+		"Current process": {
 			process:  "go",
 			procPath: "/proc",
 		},
-		"GetProcessNamespaceDirectory(...): host namespace": {
+		"Host namespace": {
 			procPath: "/proc",
 			expected: "/proc/1/ns",
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing proc.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			if testCase.expected == "" {
+				pids, err := GetProcessPIDs(testCase.process, testCase.procPath)
+				assert.NoError(t, err)
 
-		if testCase.expected == "" {
-			pids, err := GetProcessPIDs(testCase.process, testCase.procPath)
-			c.Assert(err, IsNil)
+				testCase.expected = fmt.Sprintf("/proc/%d/ns", pids[0])
+			}
 
-			testCase.expected = fmt.Sprintf("/proc/%d/ns", pids[0])
-		}
-
-		result, err := GetProcessNamespaceDirectory(testCase.process, testCase.procPath)
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
-		c.Assert(result, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
+			result, err := GetProcessNamespaceDirectory(testCase.process, testCase.procPath)
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName, err))
+			assert.Equal(t, testCase.expected, result, Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }
