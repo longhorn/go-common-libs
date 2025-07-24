@@ -2,14 +2,16 @@ package utils
 
 import (
 	"strings"
+	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"golang.org/x/exp/constraints"
 	. "gopkg.in/check.v1"
 
 	"github.com/longhorn/go-common-libs/test"
 )
 
-func (s *TestSuite) TestContains(c *C) {
+func TestContains(t *testing.T) {
 	type testCase struct {
 		inputSlice []interface{}
 		inputValue interface{}
@@ -17,94 +19,94 @@ func (s *TestSuite) TestContains(c *C) {
 		expected bool
 	}
 	testCases := map[string]testCase{
-		"Contains(...)": {
+		"Valid slice": {
 			inputSlice: []interface{}{"a", "b", "c"},
 			inputValue: "b",
 			expected:   true,
 		},
-		"Contains(...): not in slice": {
+		"Not in slice": {
 			inputSlice: []interface{}{"a", "b", "c"},
 			inputValue: "d",
 			expected:   false,
 		},
-		"Contains(...): empty slice": {
+		"Empty slice": {
 			inputSlice: []interface{}{},
 			inputValue: "a",
 			expected:   false,
 		},
-		"Contains(...): nil slice": {
+		"Nil slice": {
 			inputSlice: nil,
 			inputValue: "a",
 			expected:   false,
 		},
-		"Contains(...): nil value": {
+		"Nil value": {
 			inputSlice: []interface{}{"a", "b", "c"},
 			inputValue: nil,
 			expected:   false,
 		},
-		"Contains(...): integer slice": {
+		"Integer slice": {
 			inputSlice: []interface{}{1, 2, 3},
 			inputValue: 2,
 			expected:   true,
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
-
-		result := Contains(testCase.inputSlice, testCase.inputValue)
-		c.Assert(result, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
+		t.Run(testName, func(t *testing.T) {
+			result := Contains(testCase.inputSlice, testCase.inputValue)
+			assert.Equal(t, testCase.expected, result, Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }
 
-func (s *TestSuite) TestGetFunctionName(c *C) {
+func TestGetFunctionName(t *testing.T) {
 	type testCase struct {
 		inputFunction interface{}
 
 		expected string
 	}
 	testCases := map[string]testCase{
-		"GetFunctionName(...)": {
+		"Valid function": {
 			inputFunction: GetFunctionName,
 			expected:      "utils.GetFunctionName",
 		},
-		"GetFunctionName(...): not a function": {
+		"Not a function": {
 			inputFunction: "not a function",
 			expected:      "",
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
-
-		result := GetFunctionName(testCase.inputFunction)
-		c.Assert(result, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
+		t.Run(testName, func(t *testing.T) {
+			result := GetFunctionName(testCase.inputFunction)
+			assert.Equal(t, testCase.expected, result, Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }
 
-func (s *TestSuite) TestGetFunctionPath(c *C) {
+func TestGetFunctionPath(t *testing.T) {
 	type testCase struct {
 		inputFunction interface{}
 
 		expected string
 	}
 	testCases := map[string]testCase{
-		"GetFunctionPath(...)": {
+		"Valid function": {
 			inputFunction: GetFunctionName,
 			expected:      "github.com/longhorn/go-common-libs/utils.GetFunctionName",
 		},
-		"GetFunctionPath(...): not a function": {
+		"Not a function": {
 			inputFunction: "not a function",
 			expected:      "",
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
-
-		result := GetFunctionPath(testCase.inputFunction)
-		c.Assert(result, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
+		t.Run(testName, func(t *testing.T) {
+			result := GetFunctionPath(testCase.inputFunction)
+			assert.Equal(t, testCase.expected, result, Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }
 
-func (s *TestSuite) TestIsStringInSlice(c *C) {
+func TestIsStringInSlice(t *testing.T) {
 	type testCase struct {
 		inputList []string
 		inputItem string
@@ -112,60 +114,60 @@ func (s *TestSuite) TestIsStringInSlice(c *C) {
 		expected bool
 	}
 	testCases := map[string]testCase{
-		"IsStringInSlice(...)": {
+		"In slice": {
 			inputList: []string{"a", "b", "c"},
 			inputItem: "b",
 			expected:  true,
 		},
-		"IsStringInSlice(...): not in slice": {
+		"Not in slice": {
 			inputList: []string{"a", "b", "c"},
 			inputItem: "d",
 			expected:  false,
 		},
-		"IsStringInSlice(...): empty slice": {
+		"Empty slice": {
 			inputList: []string{},
 			inputItem: "a",
 			expected:  false,
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
-
-		result := IsStringInSlice(testCase.inputList, testCase.inputItem)
-		c.Assert(result, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
+		t.Run(testName, func(t *testing.T) {
+			result := IsStringInSlice(testCase.inputList, testCase.inputItem)
+			assert.Equal(t, testCase.expected, result, Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }
 
-func (s *TestSuite) TestRandomID(c *C) {
+func TestRandomID(t *testing.T) {
 	type testCase struct {
 		idLength int
 
 		expectedLength int
 	}
 	testCases := map[string]testCase{
-		"RandomID(...)": {
+		"Positive length": {
 			idLength:       10,
 			expectedLength: 10,
 		},
-		"RandomID(...): default length": {
+		"Default length": {
 			idLength:       0,
 			expectedLength: 8,
 		},
-		"RandomID(...): negative length": {
+		"Negative length": {
 			idLength:       -1,
 			expectedLength: 8,
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
-
-		result := RandomID(testCase.idLength)
-		c.Assert(len(result), Equals, testCase.expectedLength, Commentf(test.ErrResultFmt, testName))
-		c.Assert(strings.Contains(result, "-"), Equals, false, Commentf(test.ErrResultFmt, testName))
+		t.Run(testName, func(t *testing.T) {
+			result := RandomID(testCase.idLength)
+			assert.Equal(t, testCase.expectedLength, len(result), Commentf(test.ErrResultFmt, testName))
+			assert.False(t, strings.Contains(result, "-"), Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }
 
-func (s TestSuite) TestGenerateRandomNumber(c *C) {
+func TestGenerateRandomNumber(t *testing.T) {
 	type testCase struct {
 		inputLower int64
 		inputUpper int64
@@ -174,18 +176,18 @@ func (s TestSuite) TestGenerateRandomNumber(c *C) {
 		retRange      []int64
 	}
 	testCases := map[string]testCase{
-		"GenerateRandomNumber(...)": {
+		"Min < max": {
 			inputLower:    0,
 			inputUpper:    10,
 			expectSuccess: true,
 			retRange:      []int64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 		},
-		"GenerateRandomNumber(...): min > max": {
+		"Min > max": {
 			inputLower:    10,
 			inputUpper:    0,
 			expectSuccess: false,
 		},
-		"GenerateRandomNumber(...): min == max": {
+		"Min == max": {
 			inputLower:    10,
 			inputUpper:    10,
 			expectSuccess: true,
@@ -193,66 +195,66 @@ func (s TestSuite) TestGenerateRandomNumber(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
-
-		result, err := GenerateRandomNumber(testCase.inputLower, testCase.inputUpper)
-		if testCase.expectSuccess {
-			c.Assert(err, IsNil, Commentf(test.ErrResultFmt, testName))
-			c.Assert(result, test.IsInList, testCase.retRange, Commentf(test.ErrResultFmt, testName))
-		} else {
-			c.Assert(err, NotNil, Commentf(test.ErrResultFmt, testName))
-		}
+		t.Run(testName, func(t *testing.T) {
+			result, err := GenerateRandomNumber(testCase.inputLower, testCase.inputUpper)
+			if testCase.expectSuccess {
+				assert.NoError(t, err, Commentf(test.ErrResultFmt, testName))
+				assert.Contains(t, testCase.retRange, result, Commentf(test.ErrResultFmt, testName))
+			} else {
+				assert.Error(t, err, Commentf(test.ErrResultFmt, testName))
+			}
+		})
 	}
 }
 
-func (s *TestSuite) TestConvertTypeToString(c *C) {
+func TestConvertTypeToString(t *testing.T) {
 	type testCase struct {
 		inputValue interface{}
 
 		expected string
 	}
 	testCases := map[string]testCase{
-		"ConvertTypeToString(...): string": {
+		"String": {
 			inputValue: "abc",
 			expected:   "abc",
 		},
-		"ConvertTypeToString(...): int": {
+		"Int": {
 			inputValue: 123,
 			expected:   "123",
 		},
-		"ConvertTypeToString(...): int64": {
+		"Int64": {
 			inputValue: int64(123),
 			expected:   "123",
 		},
-		"ConvertTypeToString(...): float": {
+		"Float": {
 			inputValue: 123.456,
 			expected:   "123.456",
 		},
-		"ConvertTypeToString(...): bool": {
+		"Bool": {
 			inputValue: true,
 			expected:   "true",
 		},
-		"ConvertTypeToString(...): unsupported": {
+		"Unsupported": {
 			inputValue: nil,
 			expected:   "Unsupported type: invalid",
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing utils.%v", testName)
-
-		result := ConvertTypeToString(testCase.inputValue)
-		c.Assert(result, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
+		t.Run(testName, func(t *testing.T) {
+			result := ConvertTypeToString(testCase.inputValue)
+			assert.Equal(t, testCase.expected, result, Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }
 
-func (s *TestSuite) TestSortKeys(c *C) {
+func TestSortKeys(t *testing.T) {
 	// Test cases for base cases
 	baseTestCases := map[string]testCaseSortKeys[string, any]{
-		"SortKeys(...): nil map": {
+		"Nil map": {
 			inputMap:    nil,
 			expectError: true,
 		},
-		"SortKeys(...): empty map": {
+		"Empty map": {
 			inputMap: map[string]any{},
 			expected: []string{},
 		},
@@ -260,7 +262,7 @@ func (s *TestSuite) TestSortKeys(c *C) {
 
 	// Test cases for string keys
 	stringTestCases := map[string]testCaseSortKeys[string, any]{
-		"SortKeys(...): string": {
+		"String": {
 			inputMap: map[string]any{
 				"b": "",
 				"c": "",
@@ -272,7 +274,7 @@ func (s *TestSuite) TestSortKeys(c *C) {
 
 	// Test cases for uint64 keys
 	uint64TestCases := map[string]testCaseSortKeys[uint64, any]{
-		"SortKeys(...): uint64": {
+		"Uint64": {
 			inputMap: map[uint64]any{
 				2: "",
 				1: "",
@@ -282,9 +284,9 @@ func (s *TestSuite) TestSortKeys(c *C) {
 		},
 	}
 
-	runTestSortKeys(c, baseTestCases)
-	runTestSortKeys(c, stringTestCases)
-	runTestSortKeys(c, uint64TestCases)
+	runTestSortKeys(t, baseTestCases)
+	runTestSortKeys(t, stringTestCases)
+	runTestSortKeys(t, uint64TestCases)
 }
 
 type testCaseSortKeys[K constraints.Ordered, V any] struct {
@@ -293,16 +295,17 @@ type testCaseSortKeys[K constraints.Ordered, V any] struct {
 	expectError bool
 }
 
-func runTestSortKeys[K constraints.Ordered, V any](c *C, testCases map[string]testCaseSortKeys[K, V]) {
+func runTestSortKeys[K constraints.Ordered, V any](t *testing.T, testCases map[string]testCaseSortKeys[K, V]) {
 	for testName, tc := range testCases {
-		c.Logf("Testing utils.%v", testName)
-		result, err := SortKeys(tc.inputMap)
+		t.Run(testName, func(t *testing.T) {
+			result, err := SortKeys(tc.inputMap)
 
-		if tc.expectError {
-			c.Assert(err, NotNil, Commentf("Expected error in %v", testName))
-			continue
-		}
-		c.Assert(err, IsNil, Commentf("Unexpected error in %v", testName))
-		c.Assert(result, DeepEquals, tc.expected, Commentf("Unexpected result in %v", testName))
+			if tc.expectError {
+				assert.Error(t, err, Commentf("Expected error in %v", testName))
+				return
+			}
+			assert.NoError(t, err, Commentf("Unexpected error in %v", testName))
+			assert.Equal(t, tc.expected, result, Commentf("Unexpected result in %v", testName))
+		})
 	}
 }
