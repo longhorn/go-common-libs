@@ -2,8 +2,10 @@ package kubernetes
 
 import (
 	"context"
+	"testing"
 
 	"github.com/longhorn/go-common-libs/test"
+	"github.com/stretchr/testify/assert"
 	. "gopkg.in/check.v1"
 
 	"k8s.io/client-go/kubernetes/fake"
@@ -13,7 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (s *TestSuite) TestGetDeployment(c *C) {
+func TestGetDeployment(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -22,7 +24,7 @@ func (s *TestSuite) TestGetDeployment(c *C) {
 		expectNotFound bool
 	}
 	testCases := map[string]testCase{
-		"GetDeployment(...):": {
+		"Existing": {
 			deployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -30,7 +32,7 @@ func (s *TestSuite) TestGetDeployment(c *C) {
 				},
 			},
 		},
-		"GetDeployment(...): not found": {
+		"Not found": {
 			deployment: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -41,26 +43,26 @@ func (s *TestSuite) TestGetDeployment(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing kubernetes.%v", testName)
+		t.Run(testName, func(t *testing.T) {
 
-		kubeClient := fake.NewSimpleClientset()
+			kubeClient := fake.NewSimpleClientset()
+			if !testCase.expectNotFound {
+				_, err := kubeClient.AppsV1().Deployments(testCase.deployment.Namespace).Create(ctx, testCase.deployment, metav1.CreateOptions{})
+				assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName))
+			}
 
-		if !testCase.expectNotFound {
-			_, err := kubeClient.AppsV1().Deployments(testCase.deployment.Namespace).Create(ctx, testCase.deployment, metav1.CreateOptions{})
-			c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
-		}
-
-		deployment, err := GetDeployment(kubeClient, testCase.deployment.Namespace, testCase.deployment.Name)
-		if testCase.expectNotFound {
-			c.Assert(apierrors.IsNotFound(err), Equals, true, Commentf(test.ErrResultFmt, testName))
-			continue
-		}
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
-		c.Assert(deployment.Name, Equals, testCase.deployment.Name, Commentf(test.ErrResultFmt, testName))
+			deployment, err := GetDeployment(kubeClient, testCase.deployment.Namespace, testCase.deployment.Name)
+			if testCase.expectNotFound {
+				assert.True(t, apierrors.IsNotFound(err), Commentf(test.ErrResultFmt, testName))
+				return
+			}
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName))
+			assert.Equal(t, deployment.Name, testCase.deployment.Name, Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }
 
-func (s *TestSuite) TestListDeployments(c *C) {
+func TestListDeployments(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -71,7 +73,7 @@ func (s *TestSuite) TestListDeployments(c *C) {
 		expectError   bool
 	}
 	testCases := map[string]testCase{
-		"ListDeployments(...):": {
+		"Existing": {
 			deployments: []*appsv1.Deployment{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -81,7 +83,7 @@ func (s *TestSuite) TestListDeployments(c *C) {
 				},
 			},
 		},
-		"ListDeployments(...): not found": {
+		"Not found": {
 			deployments: []*appsv1.Deployment{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -92,7 +94,7 @@ func (s *TestSuite) TestListDeployments(c *C) {
 			},
 			skipCreate: true,
 		},
-		"ListDeployments(...): with single label": {
+		"With single label": {
 			deployments: []*appsv1.Deployment{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -110,7 +112,7 @@ func (s *TestSuite) TestListDeployments(c *C) {
 				"foo": "bar",
 			},
 		},
-		"ListDeployments(...): with multiple labels": {
+		"With multiple labels": {
 			deployments: []*appsv1.Deployment{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -131,31 +133,31 @@ func (s *TestSuite) TestListDeployments(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing kubernetes.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			kubeClient := fake.NewSimpleClientset()
 
-		kubeClient := fake.NewSimpleClientset()
+			for _, deployment := range testCase.deployments {
+				if testCase.skipCreate {
+					continue
+				}
 
-		for _, deployment := range testCase.deployments {
-			if testCase.skipCreate {
-				continue
+				_, err := kubeClient.AppsV1().Deployments(deployment.Namespace).Create(ctx, deployment, metav1.CreateOptions{})
+				assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName))
 			}
 
-			_, err := kubeClient.AppsV1().Deployments(deployment.Namespace).Create(ctx, deployment, metav1.CreateOptions{})
-			c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
-		}
+			deployments, err := ListDeployments(kubeClient, testCase.deployments[0].Namespace, testCase.labelSelector)
+			if testCase.expectError {
+				assert.Error(t, err, Commentf(test.ErrErrorFmt, testName))
+				return
+			}
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName))
 
-		deployments, err := ListDeployments(kubeClient, testCase.deployments[0].Namespace, testCase.labelSelector)
-		if testCase.expectError {
-			c.Assert(err, NotNil, Commentf(test.ErrErrorFmt, testName))
-			continue
-		}
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
+			if testCase.skipCreate {
+				assert.Equal(t, 0, len(deployments.Items), Commentf(test.ErrResultFmt, testName))
+				return
+			}
 
-		if testCase.skipCreate {
-			c.Assert(len(deployments.Items), Equals, 0, Commentf(test.ErrResultFmt, testName))
-			continue
-		}
-
-		c.Assert(len(deployments.Items), Equals, len(testCase.deployments), Commentf(test.ErrResultFmt, testName))
+			assert.Equal(t, len(deployments.Items), len(testCase.deployments), Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }

@@ -2,7 +2,9 @@ package kubernetes
 
 import (
 	"reflect"
+	"testing"
 
+	"github.com/stretchr/testify/assert"
 	. "gopkg.in/check.v1"
 
 	"github.com/longhorn/go-common-libs/test"
@@ -12,13 +14,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (s *TestSuite) TestGetObjMetaAccesser(c *C) {
+func TestGetObjMetaAccesser(t *testing.T) {
 	type testCase struct {
 		obj         interface{}
 		expectError bool
 	}
 	testCases := map[string]testCase{
-		"GetObjMetaAccesser(...): obj is corev1.Pod": {
+		"Obj is corev1.Pod": {
 			obj: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -26,7 +28,7 @@ func (s *TestSuite) TestGetObjMetaAccesser(c *C) {
 				},
 			},
 		},
-		"GetObjMetaAccesser(...): obj is *appv1.Deployment": {
+		"Obj is *appv1.Deployment": {
 			obj: &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -34,27 +36,28 @@ func (s *TestSuite) TestGetObjMetaAccesser(c *C) {
 				},
 			},
 		},
-		"GetObjMetaAccesser(...): invalid obj": {
+		"Invalid obj": {
 			obj:         1,
 			expectError: true,
 		},
-		"GetObjMetaAccesser(...): obj is nil": {
+		"Obj is nil": {
 			obj:         nil,
 			expectError: true,
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing kubernetes.%v", testName)
+		t.Run(testName, func(t *testing.T) {
 
-		meta, err := GetObjMetaAccesser(testCase.obj)
+			meta, err := GetObjMetaAccesser(testCase.obj)
 
-		if testCase.expectError {
-			c.Assert(err, NotNil, Commentf(test.ErrErrorFmt, testName, err))
-			continue
-		}
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
+			if testCase.expectError {
+				assert.NotNil(t, err, Commentf(test.ErrErrorFmt, testName, err))
+				return
+			}
+			assert.Nil(t, err, Commentf(test.ErrErrorFmt, testName, err))
 
-		c.Assert(meta, NotNil, Commentf(test.ErrResultFmt, testName, "meta is nil"))
-		c.Assert(reflect.DeepEqual(meta, testCase.obj), Equals, true, Commentf(test.ErrResultFmt, testName, "meta is not equal to obj"))
+			assert.NotNil(t, meta, Commentf(test.ErrResultFmt, testName, "meta is nil"))
+			assert.True(t, reflect.DeepEqual(meta, testCase.obj), Commentf(test.ErrResultFmt, testName, "meta is not equal to obj"))
+		})
 	}
 }

@@ -1,6 +1,9 @@
 package kubernetes
 
 import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
 	. "gopkg.in/check.v1"
 
 	"github.com/longhorn/go-common-libs/test"
@@ -8,25 +11,25 @@ import (
 	"k8s.io/mount-utils"
 )
 
-func (s *TestSuite) TestIsMountPointReadOnly(c *C) {
+func TestIsMountPointReadOnly(t *testing.T) {
 	type testCase struct {
 		input    mount.MountPoint
 		expected bool
 	}
 	testCases := map[string]testCase{
-		"IsMountPointReadOnly(...): readOnly": {
+		"ReadOnly": {
 			input: mount.MountPoint{
 				Opts: []string{"ro"},
 			},
 			expected: true,
 		},
-		"IsMountPointReadOnly(...): readWrite": {
+		"ReadWrite": {
 			input: mount.MountPoint{
 				Opts: []string{"rw"},
 			},
 			expected: false,
 		},
-		"IsMountPointReadOnly(...): empty": {
+		"Empty": {
 			input: mount.MountPoint{
 				Opts: []string{},
 			},
@@ -34,9 +37,9 @@ func (s *TestSuite) TestIsMountPointReadOnly(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing kubernetes.%v", testName)
-
-		result := IsMountPointReadOnly(testCase.input)
-		c.Assert(result, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
+		t.Run(testName, func(t *testing.T) {
+			result := IsMountPointReadOnly(testCase.input)
+			assert.Equal(t, testCase.expected, result, Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }

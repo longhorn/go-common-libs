@@ -2,8 +2,9 @@ package kubernetes
 
 import (
 	"context"
+	"testing"
 
-	"github.com/longhorn/go-common-libs/test"
+	"github.com/stretchr/testify/assert"
 	. "gopkg.in/check.v1"
 
 	"k8s.io/client-go/kubernetes/fake"
@@ -11,9 +12,11 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/longhorn/go-common-libs/test"
 )
 
-func (s *TestSuite) TestCreateDaemonSet(c *C) {
+func TestCreateDaemonSet(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -22,7 +25,7 @@ func (s *TestSuite) TestCreateDaemonSet(c *C) {
 		IsAlreadyExists bool
 	}
 	testCases := map[string]testCase{
-		"CreateDaemonSet(...):": {
+		"Existing": {
 			daemonSet: &appsv1.DaemonSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -30,7 +33,7 @@ func (s *TestSuite) TestCreateDaemonSet(c *C) {
 				},
 			},
 		},
-		"CreateDaemonSet(...): already exists": {
+		"Already exists": {
 			daemonSet: &appsv1.DaemonSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -41,26 +44,26 @@ func (s *TestSuite) TestCreateDaemonSet(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing kubernetes.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			kubeClient := fake.NewSimpleClientset()
 
-		kubeClient := fake.NewSimpleClientset()
+			if testCase.IsAlreadyExists {
+				_, err := kubeClient.AppsV1().DaemonSets(testCase.daemonSet.Namespace).Create(ctx, testCase.daemonSet, metav1.CreateOptions{})
+				assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName))
+			}
 
-		if testCase.IsAlreadyExists {
-			_, err := kubeClient.AppsV1().DaemonSets(testCase.daemonSet.Namespace).Create(ctx, testCase.daemonSet, metav1.CreateOptions{})
-			c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
-		}
+			daemonSet, err := CreateDaemonSet(kubeClient, testCase.daemonSet)
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName))
+			assert.NotNil(t, daemonSet, Commentf(test.ErrResultFmt, testName))
 
-		daemonSet, err := CreateDaemonSet(kubeClient, testCase.daemonSet)
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
-		c.Assert(daemonSet, NotNil, Commentf(test.ErrResultFmt, testName))
-
-		daemonSet, err = kubeClient.AppsV1().DaemonSets(testCase.daemonSet.Namespace).Get(ctx, testCase.daemonSet.Name, metav1.GetOptions{})
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
-		c.Assert(daemonSet.Name, Equals, testCase.daemonSet.Name, Commentf(test.ErrResultFmt, testName))
+			daemonSet, err = kubeClient.AppsV1().DaemonSets(testCase.daemonSet.Namespace).Get(ctx, testCase.daemonSet.Name, metav1.GetOptions{})
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName))
+			assert.Equal(t, daemonSet.Name, testCase.daemonSet.Name, Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }
 
-func (s *TestSuite) TestDeleteDaemonSet(c *C) {
+func TestDeleteDaemonSet(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -69,7 +72,7 @@ func (s *TestSuite) TestDeleteDaemonSet(c *C) {
 		expectNotFound bool
 	}
 	testCases := map[string]testCase{
-		"DeleteDaemonSet(...):": {
+		"Existing": {
 			daemonSet: &appsv1.DaemonSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -77,7 +80,7 @@ func (s *TestSuite) TestDeleteDaemonSet(c *C) {
 				},
 			},
 		},
-		"DeleteDaemonSet(...): not found": {
+		"Not found": {
 			daemonSet: &appsv1.DaemonSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -88,28 +91,28 @@ func (s *TestSuite) TestDeleteDaemonSet(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing kubernetes.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			kubeClient := fake.NewSimpleClientset()
 
-		kubeClient := fake.NewSimpleClientset()
+			if !testCase.expectNotFound {
+				_, err := kubeClient.AppsV1().DaemonSets(testCase.daemonSet.Namespace).Create(ctx, testCase.daemonSet, metav1.CreateOptions{})
+				assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName))
 
-		if !testCase.expectNotFound {
-			_, err := kubeClient.AppsV1().DaemonSets(testCase.daemonSet.Namespace).Create(ctx, testCase.daemonSet, metav1.CreateOptions{})
-			c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
+				daemonSet, err := kubeClient.AppsV1().DaemonSets(testCase.daemonSet.Namespace).Get(ctx, testCase.daemonSet.Name, metav1.GetOptions{})
+				assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName))
+				assert.Equal(t, daemonSet.Name, testCase.daemonSet.Name, Commentf(test.ErrResultFmt, testName))
+			}
 
-			daemonSet, err := kubeClient.AppsV1().DaemonSets(testCase.daemonSet.Namespace).Get(ctx, testCase.daemonSet.Name, metav1.GetOptions{})
-			c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
-			c.Assert(daemonSet.Name, Equals, testCase.daemonSet.Name, Commentf(test.ErrResultFmt, testName))
-		}
+			err := DeleteDaemonSet(kubeClient, testCase.daemonSet.Namespace, testCase.daemonSet.Name)
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName))
 
-		err := DeleteDaemonSet(kubeClient, testCase.daemonSet.Namespace, testCase.daemonSet.Name)
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
-
-		_, err = kubeClient.AppsV1().DaemonSets(testCase.daemonSet.Namespace).Get(ctx, testCase.daemonSet.Name, metav1.GetOptions{})
-		c.Assert(apierrors.IsNotFound(err), Equals, true, Commentf(test.ErrResultFmt, testName))
+			_, err = kubeClient.AppsV1().DaemonSets(testCase.daemonSet.Namespace).Get(ctx, testCase.daemonSet.Name, metav1.GetOptions{})
+			assert.True(t, apierrors.IsNotFound(err), Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }
 
-func (s *TestSuite) TestGetDaemonSet(c *C) {
+func TestGetDaemonSet(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -118,7 +121,7 @@ func (s *TestSuite) TestGetDaemonSet(c *C) {
 		expectNotFound bool
 	}
 	testCases := map[string]testCase{
-		"GetDaemonSet(...):": {
+		"Existing": {
 			daemonSet: &appsv1.DaemonSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -126,7 +129,7 @@ func (s *TestSuite) TestGetDaemonSet(c *C) {
 				},
 			},
 		},
-		"GetDaemonSet(...): not found": {
+		"Not found": {
 			daemonSet: &appsv1.DaemonSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -137,26 +140,26 @@ func (s *TestSuite) TestGetDaemonSet(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing kubernetes.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			kubeClient := fake.NewSimpleClientset()
 
-		kubeClient := fake.NewSimpleClientset()
+			if !testCase.expectNotFound {
+				_, err := kubeClient.AppsV1().DaemonSets(testCase.daemonSet.Namespace).Create(ctx, testCase.daemonSet, metav1.CreateOptions{})
+				assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName))
+			}
 
-		if !testCase.expectNotFound {
-			_, err := kubeClient.AppsV1().DaemonSets(testCase.daemonSet.Namespace).Create(ctx, testCase.daemonSet, metav1.CreateOptions{})
-			c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
-		}
-
-		daemonSet, err := GetDaemonSet(kubeClient, testCase.daemonSet.Namespace, testCase.daemonSet.Name)
-		if testCase.expectNotFound {
-			c.Assert(apierrors.IsNotFound(err), Equals, true, Commentf(test.ErrResultFmt, testName))
-			return
-		}
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
-		c.Assert(daemonSet.Name, Equals, testCase.daemonSet.Name, Commentf(test.ErrResultFmt, testName))
+			daemonSet, err := GetDaemonSet(kubeClient, testCase.daemonSet.Namespace, testCase.daemonSet.Name)
+			if testCase.expectNotFound {
+				assert.True(t, apierrors.IsNotFound(err), Commentf(test.ErrResultFmt, testName))
+				return
+			}
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName))
+			assert.Equal(t, daemonSet.Name, testCase.daemonSet.Name, Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }
 
-func (s *TestSuite) TestIsDaemonSetReady(c *C) {
+func TestIsDaemonSetReady(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -165,7 +168,7 @@ func (s *TestSuite) TestIsDaemonSetReady(c *C) {
 		expectedReady bool
 	}
 	testCases := map[string]testCase{
-		"IsDaemonSetReady(...):": {
+		"Existing": {
 			daemonSet: &appsv1.DaemonSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -178,7 +181,7 @@ func (s *TestSuite) TestIsDaemonSetReady(c *C) {
 			},
 			expectedReady: true,
 		},
-		"IsDaemonSetReady(...): not ready": {
+		"Not ready": {
 			daemonSet: &appsv1.DaemonSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -193,13 +196,13 @@ func (s *TestSuite) TestIsDaemonSetReady(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing kubernetes.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			kubeClient := fake.NewSimpleClientset()
+			_, err := kubeClient.AppsV1().DaemonSets(testCase.daemonSet.Namespace).Create(ctx, testCase.daemonSet, metav1.CreateOptions{})
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName))
 
-		kubeClient := fake.NewSimpleClientset()
-		_, err := kubeClient.AppsV1().DaemonSets(testCase.daemonSet.Namespace).Create(ctx, testCase.daemonSet, metav1.CreateOptions{})
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
-
-		ready := IsDaemonSetReady(testCase.daemonSet)
-		c.Assert(ready, Equals, testCase.expectedReady, Commentf(test.ErrResultFmt, testName))
+			ready := IsDaemonSetReady(testCase.daemonSet)
+			assert.Equal(t, ready, testCase.expectedReady, Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }

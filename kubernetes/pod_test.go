@@ -1,12 +1,13 @@
 package kubernetes
 
 import (
-	. "gopkg.in/check.v1"
+	"testing"
 
+	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 )
 
-func (s *TestSuite) TestIsPodContainerInState(c *C) {
+func TestIsPodContainerInState(t *testing.T) {
 	containerName := "test"
 	type testCase struct {
 		pod           *corev1.Pod
@@ -14,7 +15,7 @@ func (s *TestSuite) TestIsPodContainerInState(c *C) {
 		expectedState bool
 	}
 	testCases := map[string]testCase{
-		"IsPodContainerInState(...): container is completed": {
+		"Container is completed": {
 			pod: &corev1.Pod{
 				Status: corev1.PodStatus{
 					ContainerStatuses: []corev1.ContainerStatus{
@@ -32,7 +33,7 @@ func (s *TestSuite) TestIsPodContainerInState(c *C) {
 			conditionFunc: IsContainerCompleted,
 			expectedState: true,
 		},
-		"IsPodContainerInState(...): container is not completed": {
+		"Container is not completed": {
 			pod: &corev1.Pod{
 				Status: corev1.PodStatus{
 					ContainerStatuses: []corev1.ContainerStatus{
@@ -50,7 +51,7 @@ func (s *TestSuite) TestIsPodContainerInState(c *C) {
 			conditionFunc: IsContainerCompleted,
 			expectedState: false,
 		},
-		"IsPodContainerInState(...): init container is completed": {
+		"Init container is completed": {
 			pod: &corev1.Pod{
 				Status: corev1.PodStatus{
 					InitContainerStatuses: []corev1.ContainerStatus{
@@ -68,7 +69,7 @@ func (s *TestSuite) TestIsPodContainerInState(c *C) {
 			conditionFunc: IsContainerCompleted,
 			expectedState: true,
 		},
-		"IsPodContainerInState(...): init container is not completed": {
+		"Init container is not completed": {
 			pod: &corev1.Pod{
 				Status: corev1.PodStatus{
 					InitContainerStatuses: []corev1.ContainerStatus{
@@ -86,7 +87,7 @@ func (s *TestSuite) TestIsPodContainerInState(c *C) {
 			conditionFunc: IsContainerCompleted,
 			expectedState: false,
 		},
-		"IsPodContainerInState(...): container is initializing": {
+		"Container is initializing": {
 			pod: &corev1.Pod{
 				Status: corev1.PodStatus{
 					ContainerStatuses: []corev1.ContainerStatus{
@@ -104,7 +105,7 @@ func (s *TestSuite) TestIsPodContainerInState(c *C) {
 			conditionFunc: IsContainerInitializing,
 			expectedState: true,
 		},
-		"IsPodContainerInState(...): container is ready": {
+		"Container is ready": {
 			pod: &corev1.Pod{
 				Status: corev1.PodStatus{
 					ContainerStatuses: []corev1.ContainerStatus{
@@ -119,7 +120,7 @@ func (s *TestSuite) TestIsPodContainerInState(c *C) {
 			expectedState: true,
 		},
 
-		"IsPodContainerInState(...): container is restarted": {
+		"Container is restarted": {
 			pod: &corev1.Pod{
 				Status: corev1.PodStatus{
 					ContainerStatuses: []corev1.ContainerStatus{
@@ -139,7 +140,7 @@ func (s *TestSuite) TestIsPodContainerInState(c *C) {
 			expectedState: true,
 		},
 
-		"IsPodContainerInState(...): container is waiting crash loop back off": {
+		"Container is waiting crash loop back off": {
 			pod: &corev1.Pod{
 				Status: corev1.PodStatus{
 					ContainerStatuses: []corev1.ContainerStatus{
@@ -160,10 +161,9 @@ func (s *TestSuite) TestIsPodContainerInState(c *C) {
 	}
 
 	for testName, testCase := range testCases {
-		c.Logf("testing kubernetes.%v", testName)
-
-		isInState := IsPodContainerInState(testCase.pod, containerName, testCase.conditionFunc)
-		c.Assert(isInState, Equals, testCase.expectedState)
+		t.Run(testName, func(t *testing.T) {
+			isInState := IsPodContainerInState(testCase.pod, containerName, testCase.conditionFunc)
+			assert.Equal(t, testCase.expectedState, isInState)
+		})
 	}
-
 }

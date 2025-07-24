@@ -2,8 +2,10 @@ package kubernetes
 
 import (
 	"context"
+	"testing"
 
 	"github.com/longhorn/go-common-libs/test"
+	"github.com/stretchr/testify/assert"
 	. "gopkg.in/check.v1"
 
 	"k8s.io/client-go/kubernetes/fake"
@@ -13,7 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (s *TestSuite) TestCreateServiceAccount(c *C) {
+func TestCreateServiceAccount(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -22,7 +24,7 @@ func (s *TestSuite) TestCreateServiceAccount(c *C) {
 		IsAlreadyExists bool
 	}
 	testCases := map[string]testCase{
-		"CreateServiceAccount(...):": {
+		"Existing": {
 			serviceAccount: &corev1.ServiceAccount{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -30,7 +32,7 @@ func (s *TestSuite) TestCreateServiceAccount(c *C) {
 				},
 			},
 		},
-		"CreateServiceAccount(...): already exists": {
+		"Already exists": {
 			serviceAccount: &corev1.ServiceAccount{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -41,26 +43,26 @@ func (s *TestSuite) TestCreateServiceAccount(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing kubernetes.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			kubeClient := fake.NewSimpleClientset()
 
-		kubeClient := fake.NewSimpleClientset()
+			if testCase.IsAlreadyExists {
+				_, err := kubeClient.CoreV1().ServiceAccounts(testCase.serviceAccount.Namespace).Create(ctx, testCase.serviceAccount, metav1.CreateOptions{})
+				assert.Nil(t, err, Commentf(test.ErrErrorFmt, testName))
+			}
 
-		if testCase.IsAlreadyExists {
-			_, err := kubeClient.CoreV1().ServiceAccounts(testCase.serviceAccount.Namespace).Create(ctx, testCase.serviceAccount, metav1.CreateOptions{})
-			c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
-		}
+			serviceAccount, err := CreateServiceAccount(kubeClient, testCase.serviceAccount)
+			assert.Nil(t, err, Commentf(test.ErrErrorFmt, testName))
+			assert.NotNil(t, serviceAccount, Commentf(test.ErrResultFmt, testName))
 
-		serviceAccount, err := CreateServiceAccount(kubeClient, testCase.serviceAccount)
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
-		c.Assert(serviceAccount, NotNil, Commentf(test.ErrResultFmt, testName))
-
-		serviceAccount, err = kubeClient.CoreV1().ServiceAccounts(testCase.serviceAccount.Namespace).Get(ctx, testCase.serviceAccount.Name, metav1.GetOptions{})
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
-		c.Assert(serviceAccount.Name, Equals, testCase.serviceAccount.Name, Commentf(test.ErrResultFmt, testName))
+			serviceAccount, err = kubeClient.CoreV1().ServiceAccounts(testCase.serviceAccount.Namespace).Get(ctx, testCase.serviceAccount.Name, metav1.GetOptions{})
+			assert.Nil(t, err, Commentf(test.ErrErrorFmt, testName))
+			assert.Equal(t, serviceAccount.Name, testCase.serviceAccount.Name, Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }
 
-func (s *TestSuite) TestDeleteServiceAccount(c *C) {
+func TestDeleteServiceAccount(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -69,7 +71,7 @@ func (s *TestSuite) TestDeleteServiceAccount(c *C) {
 		expectNotFound bool
 	}
 	testCases := map[string]testCase{
-		"DeleteServiceAccount(...):": {
+		"Existing": {
 			serviceAccount: &corev1.ServiceAccount{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -77,7 +79,7 @@ func (s *TestSuite) TestDeleteServiceAccount(c *C) {
 				},
 			},
 		},
-		"DeleteServiceAccount(...): not found": {
+		"Not found": {
 			serviceAccount: &corev1.ServiceAccount{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -88,28 +90,28 @@ func (s *TestSuite) TestDeleteServiceAccount(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing kubernetes.%v", testName)
+		t.Run(testName, func(t *testing.T) {
 
-		kubeClient := fake.NewSimpleClientset()
+			kubeClient := fake.NewSimpleClientset()
+			if !testCase.expectNotFound {
+				_, err := kubeClient.CoreV1().ServiceAccounts(testCase.serviceAccount.Namespace).Create(ctx, testCase.serviceAccount, metav1.CreateOptions{})
+				assert.Nil(t, err, Commentf(test.ErrErrorFmt, testName))
 
-		if !testCase.expectNotFound {
-			_, err := kubeClient.CoreV1().ServiceAccounts(testCase.serviceAccount.Namespace).Create(ctx, testCase.serviceAccount, metav1.CreateOptions{})
-			c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
+				serviceAccount, err := kubeClient.CoreV1().ServiceAccounts(testCase.serviceAccount.Namespace).Get(ctx, testCase.serviceAccount.Name, metav1.GetOptions{})
+				assert.Nil(t, err, Commentf(test.ErrErrorFmt, testName))
+				assert.Equal(t, serviceAccount.Name, testCase.serviceAccount.Name, Commentf(test.ErrResultFmt, testName))
+			}
 
-			serviceAccount, err := kubeClient.CoreV1().ServiceAccounts(testCase.serviceAccount.Namespace).Get(ctx, testCase.serviceAccount.Name, metav1.GetOptions{})
-			c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
-			c.Assert(serviceAccount.Name, Equals, testCase.serviceAccount.Name, Commentf(test.ErrResultFmt, testName))
-		}
+			err := DeleteServiceAccount(kubeClient, testCase.serviceAccount.Namespace, testCase.serviceAccount.Name)
+			assert.Nil(t, err, Commentf(test.ErrErrorFmt, testName))
 
-		err := DeleteServiceAccount(kubeClient, testCase.serviceAccount.Namespace, testCase.serviceAccount.Name)
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
-
-		_, err = kubeClient.CoreV1().ServiceAccounts(testCase.serviceAccount.Namespace).Get(ctx, testCase.serviceAccount.Name, metav1.GetOptions{})
-		c.Assert(apierrors.IsNotFound(err), Equals, true, Commentf(test.ErrResultFmt, testName))
+			_, err = kubeClient.CoreV1().ServiceAccounts(testCase.serviceAccount.Namespace).Get(ctx, testCase.serviceAccount.Name, metav1.GetOptions{})
+			assert.True(t, apierrors.IsNotFound(err), Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }
 
-func (s *TestSuite) TestGetServiceAccount(c *C) {
+func TestGetServiceAccount(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -118,7 +120,7 @@ func (s *TestSuite) TestGetServiceAccount(c *C) {
 		expectNotFound bool
 	}
 	testCases := map[string]testCase{
-		"GetServiceAccount(...):": {
+		"Existing": {
 			serviceAccount: &corev1.ServiceAccount{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -126,7 +128,7 @@ func (s *TestSuite) TestGetServiceAccount(c *C) {
 				},
 			},
 		},
-		"GetServiceAccount(...): not found": {
+		"Not found": {
 			serviceAccount: &corev1.ServiceAccount{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -137,21 +139,21 @@ func (s *TestSuite) TestGetServiceAccount(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing kubernetes.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			kubeClient := fake.NewSimpleClientset()
 
-		kubeClient := fake.NewSimpleClientset()
+			if !testCase.expectNotFound {
+				_, err := kubeClient.CoreV1().ServiceAccounts(testCase.serviceAccount.Namespace).Create(ctx, testCase.serviceAccount, metav1.CreateOptions{})
+				assert.Nil(t, err, Commentf(test.ErrErrorFmt, testName))
+			}
 
-		if !testCase.expectNotFound {
-			_, err := kubeClient.CoreV1().ServiceAccounts(testCase.serviceAccount.Namespace).Create(ctx, testCase.serviceAccount, metav1.CreateOptions{})
-			c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
-		}
-
-		serviceAccount, err := GetServiceAccount(kubeClient, testCase.serviceAccount.Namespace, testCase.serviceAccount.Name)
-		if testCase.expectNotFound {
-			c.Assert(apierrors.IsNotFound(err), Equals, true, Commentf(test.ErrResultFmt, testName))
-			return
-		}
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
-		c.Assert(serviceAccount.Name, Equals, testCase.serviceAccount.Name, Commentf(test.ErrResultFmt, testName))
+			serviceAccount, err := GetServiceAccount(kubeClient, testCase.serviceAccount.Namespace, testCase.serviceAccount.Name)
+			if testCase.expectNotFound {
+				assert.True(t, apierrors.IsNotFound(err), Commentf(test.ErrResultFmt, testName))
+				return
+			}
+			assert.Nil(t, err, Commentf(test.ErrErrorFmt, testName))
+			assert.Equal(t, serviceAccount.Name, testCase.serviceAccount.Name, Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }
