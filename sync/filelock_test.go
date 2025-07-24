@@ -3,18 +3,20 @@ package sync
 import (
 	"os"
 	"path/filepath"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	. "gopkg.in/check.v1"
 
 	"github.com/longhorn/go-common-libs/test"
 	"github.com/longhorn/go-common-libs/test/fake"
-
-	. "gopkg.in/check.v1"
 )
 
-func (s *TestSuite) TestFileLock(c *C) {
-	fakeDir := fake.CreateTempDirectory("", c)
+func TestFileLock(t *testing.T) {
+	fakeDir := fake.CreateTempDirectory("", t)
 	defer func() {
 		errRemove := os.RemoveAll(fakeDir)
-		c.Assert(errRemove, IsNil)
+		assert.NoError(t, errRemove)
 	}()
 
 	type testCase struct {
@@ -26,41 +28,41 @@ func (s *TestSuite) TestFileLock(c *C) {
 		expectUnlockError bool
 	}
 	testCases := map[string]testCase{
-		"LockFile/UnlockFile(...)": {},
-		"LockFile(...): directory not exist": {
+		"Directory exists": {},
+		"Directory not exist": {
 			fileLockDirectory: "not-exist",
 			expectLockError:   true,
 		},
-		"LockFile(...): lock file closed": {
+		"Lock file closed": {
 			isLockFileClosed:  true,
 			expectUnlockError: true,
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing sync.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			if testCase.fileLockDirectory == "" {
+				testCase.fileLockDirectory = fakeDir
+			}
 
-		if testCase.fileLockDirectory == "" {
-			testCase.fileLockDirectory = fakeDir
-		}
+			lockFilePath := filepath.Join(testCase.fileLockDirectory, "lock")
+			lockFile, err := LockFile(lockFilePath)
+			if testCase.expectLockError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName))
 
-		lockFilePath := filepath.Join(testCase.fileLockDirectory, "lock")
-		lockFile, err := LockFile(lockFilePath)
-		if testCase.expectLockError {
-			c.Assert(err, NotNil)
-			continue
-		}
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
+			if testCase.isLockFileClosed {
+				err = lockFile.Close()
+				assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName))
+			}
 
-		if testCase.isLockFileClosed {
-			err = lockFile.Close()
-			c.Assert(err, IsNil)
-		}
-
-		err = UnlockFile(lockFile)
-		if testCase.expectUnlockError {
-			c.Assert(err, NotNil)
-			continue
-		}
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
+			err = UnlockFile(lockFile)
+			if testCase.expectUnlockError {
+				assert.Error(t, err, Commentf(test.ErrErrorFmt, testName))
+				return
+			}
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName))
+		})
 	}
 }
