@@ -4,17 +4,12 @@ import (
 	"testing"
 
 	. "gopkg.in/check.v1"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/longhorn/go-common-libs/test"
 )
 
-func Test(t *testing.T) { TestingT(t) }
-
-type TestSuite struct{}
-
-var _ = Suite(&TestSuite{})
-
-func (s *TestSuite) TestGetVolumeNameFromReplicaDataDirectoryName(c *C) {
+func TestGetVolumeNameFromReplicaDataDirectoryName(t *testing.T) {
 	type testCase struct {
 		replicaName string
 
@@ -22,96 +17,96 @@ func (s *TestSuite) TestGetVolumeNameFromReplicaDataDirectoryName(c *C) {
 		expectError bool
 	}
 	testCases := map[string]testCase{
-		"GetVolumeNameFromReplicaDataDirectoryName(...): normal case": {
+		"Valid replica name": {
 			replicaName: "pvc-0e045ff8-4ea6-4573-889b-afc9aa147f95-971c46f6",
 			expected:    "pvc-0e045ff8-4ea6-4573-889b-afc9aa147f95",
 		},
-		"GetVolumeNameFromReplicaDataDirectoryName(...): empty replica name": {
+		"Empty replica name": {
 			replicaName: "",
 			expectError: true,
 		},
-		"GetVolumeNameFromReplicaDataDirectoryName(...): invalid replica name": {
+		"Invalid replica name": {
 			replicaName: "pvc-0e045ff8-4ea6-4573-889b-afc9aa147f95-00",
 			expectError: true,
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing longhorn.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			result, err := GetVolumeNameFromReplicaDataDirectoryName(testCase.replicaName)
+			if testCase.expectError {
+				assert.NotNil(t, err, Commentf(test.ErrErrorFmt, testName, err))
+				return
+			}
+			assert.Nil(t, err, Commentf(test.ErrErrorFmt, testName, err))
 
-		result, err := GetVolumeNameFromReplicaDataDirectoryName(testCase.replicaName)
-		if testCase.expectError {
-			c.Assert(err, NotNil, Commentf(test.ErrErrorFmt, testName, err))
-			continue
-		}
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
-
-		c.Assert(result, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
+			assert.Equal(t, result, testCase.expected, Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }
 
-func (s *TestSuite) TestIsEngineProcess(c *C) {
+func TestIsEngineProcess(t *testing.T) {
 	type testCase struct {
 		input    string
 		expected bool
 	}
 	testCases := map[string]testCase{
-		"IsEngineProcess(...):": {
+		"Longhorn PVC": {
 			input:    "pvc-5a8ee916-5989-46c6-bafc-ddbf7c802499-e-0",
 			expected: true,
 		},
-		"IsEngineProcess(...): engine": {
+		"Engine": {
 			input:    "nginx-e-0",
 			expected: true,
 		},
-		"IsEngineProcess(...): engine-2": {
+		"Engine-2": {
 			input:    "nginx-r-e-0",
 			expected: true,
 		},
-		"IsEngineProcess(...): engine-3": {
+		"Engine-3": {
 			input:    "pvc-669e5426-8c62-42df-979d-1be22a30cd0a-e-cc7d5051",
 			expected: true,
 		},
-		"IsEngineProcess(...): engine-4": {
+		"Engine-4": {
 			input:    "pvc-3308aae1-b3c4-4ea3-a6b8-d1fc16cea03b-e-8e24327e",
 			expected: true,
 		},
-		"IsEngineProcess(...): replica": {
+		"Replica": {
 			input:    "nginx-r-0",
 			expected: false,
 		},
-		"IsEngineProcess(...): replica-2": {
+		"Replica-2": {
 			input:    "nginx-e-r-0",
 			expected: false,
 		},
-		"IsEngineProcess(...): invalid": {
+		"Invalid": {
 			input:    "invalid-string",
 			expected: false,
 		},
-		"IsEngineProcess(...): invalid-2": {
+		"Invalid-2": {
 			input:    "-e-0",
 			expected: false,
 		},
-		"IsEngineProcess(...): invalid-3": {
+		"Invalid-3": {
 			input:    "abc-eee-0",
 			expected: false,
 		},
-		"IsEngineProcess(...): invalid-4": {
+		"Invalid-4": {
 			input:    "nginx-er-0",
 			expected: false,
 		},
-		"IsEngineProcess(...): invalid-5": {
+		"Invalid-5": {
 			input:    "nginx-e--0",
 			expected: false,
 		},
-		"IsEngineProcess(...): invalid-6": {
+		"Invalid-6": {
 			input:    "nginx-e-0-abcd",
 			expected: false,
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing longhorn.%v", testName)
-
-		result := IsEngineProcess(testCase.input)
-		c.Assert(result, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
+		t.Run(testName, func(t *testing.T) {
+			result := IsEngineProcess(testCase.input)
+			assert.Equal(t, testCase.expected, result, Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }
