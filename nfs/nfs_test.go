@@ -7,24 +7,19 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	. "gopkg.in/check.v1"
 
-	"github.com/longhorn/go-common-libs/types"
-
 	"github.com/longhorn/go-common-libs/test"
+	"github.com/longhorn/go-common-libs/test/fake"
+	"github.com/longhorn/go-common-libs/types"
 )
 
-func Test(t *testing.T) { TestingT(t) }
-
-type TestSuite struct{}
-
-var _ = Suite(&TestSuite{})
-
-func (s *TestSuite) TestGetSystemDefaultNFSVersion(c *C) {
+func TestGetSystemDefaultNFSVersion(t *testing.T) {
 	genNFSMountConf := func(dir string, nfsVer string) {
 		data := fmt.Sprintf("[ NFSMount_Global_Options ]\nDefaultvers=%s\n", nfsVer)
 		err := os.WriteFile(filepath.Join(dir, types.NFSMountFileName), []byte(data), 0644)
-		c.Assert(err, IsNil)
+		assert.Nil(t, err)
 	}
 
 	type testCase struct {
@@ -35,63 +30,63 @@ func (s *TestSuite) TestGetSystemDefaultNFSVersion(c *C) {
 		expectedError   bool
 	}
 	testCases := map[string]testCase{
-		"GetSystemDefaultNFSVersion(...): system NFS mount config absent": {
+		"System NFS mount config absent": {
 			setup: func(dir string) {
 				_, err := os.Stat(filepath.Join(dir, types.NFSMountFileName))
-				c.Assert(os.IsNotExist(err), Equals, true)
+				assert.True(t, os.IsNotExist(err))
 			},
 			expectedMajor:   0,
 			expectedMinor:   0,
 			expectedMissing: true,
 			expectedError:   true,
 		},
-		"GetSystemDefaultNFSVersion(...): system NFS mount config exist without default ver": {
+		"System NFS mount config exist without default ver": {
 			setup: func(dir string) {
 				data := "[ NFSMount_Global_Options ]\notherkey=val\n"
 				err := os.WriteFile(filepath.Join(dir, types.NFSMountFileName), []byte(data), 0644)
-				c.Assert(err, IsNil)
+				assert.Nil(t, err)
 			},
 			expectedMajor:   0,
 			expectedMinor:   0,
 			expectedMissing: true,
 			expectedError:   true,
 		},
-		"GetSystemDefaultNFSVersion(...): system NFS mount config set default ver to 3": {
+		"System NFS mount config set default ver to 3": {
 			setup:           func(dir string) { genNFSMountConf(dir, "3") },
 			expectedMajor:   3,
 			expectedMinor:   0,
 			expectedMissing: false,
 			expectedError:   false,
 		},
-		"GetSystemDefaultNFSVersion(...): system NFS mount config set default ver to 4": {
+		"System NFS mount config set default ver to 4": {
 			setup:           func(dir string) { genNFSMountConf(dir, "4") },
 			expectedMajor:   4,
 			expectedMinor:   0,
 			expectedMissing: false,
 			expectedError:   false,
 		},
-		"GetSystemDefaultNFSVersion(...): system NFS mount config set default ver to 4.0": {
+		"System NFS mount config set default ver to 4.0": {
 			setup:           func(dir string) { genNFSMountConf(dir, "4.0") },
 			expectedMajor:   4,
 			expectedMinor:   0,
 			expectedMissing: false,
 			expectedError:   false,
 		},
-		"GetSystemDefaultNFSVersion(...): system NFS mount config set default ver to 4.2": {
+		"System NFS mount config set default ver to 4.2": {
 			setup:           func(dir string) { genNFSMountConf(dir, "4.2") },
 			expectedMajor:   4,
 			expectedMinor:   2,
 			expectedMissing: false,
 			expectedError:   false,
 		},
-		"GetSystemDefaultNFSVersion(...): system NFS mount config default ver to invalid value": {
+		"System NFS mount config default ver to invalid value": {
 			setup:           func(dir string) { genNFSMountConf(dir, "???") },
 			expectedMajor:   0,
 			expectedMinor:   0,
 			expectedMissing: false,
 			expectedError:   true,
 		},
-		"GetSystemDefaultNFSVersion(...): system NFS mount config default ver to empty value": {
+		"System NFS mount config default ver to empty value": {
 			setup:           func(dir string) { genNFSMountConf(dir, "") },
 			expectedMajor:   0,
 			expectedMinor:   0,
@@ -100,28 +95,31 @@ func (s *TestSuite) TestGetSystemDefaultNFSVersion(c *C) {
 		},
 	}
 
-	configDir := c.MkDir()
+	configDir := fake.CreateTempDirectory("", t)
+	defer func() {
+		_ = os.RemoveAll(configDir)
+	}()
 
 	for testName, testCase := range testCases {
-		func() {
-			c.Logf("testing nfs.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			func() {
+				defer func() {
+					errRemove := os.RemoveAll(filepath.Join(configDir, types.NFSMountFileName))
+					assert.Nil(t, errRemove, Commentf(test.ErrErrorFmt, testName))
+				}()
+				testCase.setup(configDir)
 
-			defer func() {
-				errRemove := os.RemoveAll(filepath.Join(configDir, types.NFSMountFileName))
-				c.Assert(errRemove, IsNil, Commentf(test.ErrErrorFmt, testName))
+				major, minor, err := GetSystemDefaultNFSVersion(configDir)
+				assert.Equal(t, testCase.expectedMajor, major, Commentf(test.ErrResultFmt, testName))
+				assert.Equal(t, testCase.expectedMinor, minor, Commentf(test.ErrResultFmt, testName))
+				if testCase.expectedMissing {
+					assert.True(t, errors.Is(err, types.ErrNotConfigured), Commentf(test.ErrResultFmt, testName))
+				} else if testCase.expectedError {
+					assert.NotNil(t, err, Commentf(test.ErrErrorFmt, testName))
+				} else {
+					assert.Nil(t, err, Commentf(test.ErrErrorFmt, testName))
+				}
 			}()
-			testCase.setup(configDir)
-
-			major, minor, err := GetSystemDefaultNFSVersion(configDir)
-			c.Assert(major, Equals, testCase.expectedMajor, Commentf(test.ErrResultFmt, testName))
-			c.Assert(minor, Equals, testCase.expectedMinor, Commentf(test.ErrResultFmt, testName))
-			if testCase.expectedMissing {
-				c.Assert(errors.Is(err, types.ErrNotConfigured), Equals, true, Commentf(test.ErrResultFmt, testName))
-			} else if testCase.expectedError {
-				c.Assert(err, NotNil, Commentf(test.ErrErrorFmt, testName))
-			} else {
-				c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName))
-			}
-		}()
+		})
 	}
 }

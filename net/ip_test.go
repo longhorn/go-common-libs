@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	. "gopkg.in/check.v1"
 	"github.com/stretchr/testify/assert"
+	. "gopkg.in/check.v1"
 
 	"github.com/longhorn/go-common-libs/test"
 )
