@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	. "gopkg.in/check.v1"
 
 	"github.com/longhorn/go-common-libs/io"
@@ -18,57 +19,51 @@ import (
 	"github.com/longhorn/go-common-libs/utils"
 )
 
-func Test(t *testing.T) { TestingT(t) }
-
-type TestSuite struct{}
-
-var _ = Suite(&TestSuite{})
-
-func (s *TestSuite) TestGetArch(c *C) {
+func TestGetArch(t *testing.T) {
 	type testCase struct{}
 	testCases := map[string]testCase{
-		"GetArch(...)": {},
+		"Local": {},
 	}
 	for testName := range testCases {
-		c.Logf("testing sys.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			result, err := GetArch()
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName, err))
+			assert.NotEqual(t, "", result, Commentf(test.ErrResultFmt, testName))
 
-		result, err := GetArch()
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
-		c.Assert(result, Not(Equals), "", Commentf(test.ErrResultFmt, testName))
-
-		// https://longhorn.io/docs/1.9.0/best-practices/#architecture
-		supportedArch := []string{
-			"x86_64",  // amd64
-			"aarch64", // arm64
-			"s390x",   // s390x
-		}
-		c.Assert(utils.Contains(supportedArch, result), Equals, true, Commentf(test.ErrResultFmt, testName))
+			// https://longhorn.io/docs/1.9.0/best-practices/#architecture
+			supportedArch := []string{
+				"x86_64",  // amd64
+				"aarch64", // arm64
+				"s390x",   // s390x
+			}
+			assert.True(t, utils.Contains(supportedArch, result), Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }
 
-func (s *TestSuite) TestGetKernelRelease(c *C) {
+func TestGetKernelRelease(t *testing.T) {
 	type testCase struct{}
 	testCases := map[string]testCase{
-		"GetKernelRelease(...)": {},
+		"Local": {},
 	}
 	for testName := range testCases {
-		c.Logf("testing sys.%v", testName)
-
-		result, err := GetKernelRelease()
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
-		c.Assert(result, Not(Equals), "", Commentf(test.ErrResultFmt, testName))
+		t.Run(testName, func(t *testing.T) {
+			result, err := GetKernelRelease()
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName, err))
+			assert.NotEqual(t, "", result, Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }
 
 // TestGetHostOSDistro tests the success cases of GetHostOSDistro
-func (s *TestSuite) TestGetHostOSDistro(c *C) {
+func TestGetHostOSDistro(t *testing.T) {
 	type testCase struct {
 		mockFileContent string
 
 		expected string
 	}
 	testCases := map[string]testCase{
-		"GetOSDistro(...)": {
+		"SLES": {
 			mockFileContent: `NAME="SLES"
 VERSION="15-SP3"
 VERSION_ID="15.3"
@@ -79,23 +74,23 @@ ID_LIKE="suse"`,
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing sys.%v", testName)
-
-		result, err := GetOSDistro(testCase.mockFileContent)
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
-		c.Assert(result, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
+		t.Run(testName, func(t *testing.T) {
+			result, err := GetOSDistro(testCase.mockFileContent)
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName, err))
+			assert.Equal(t, testCase.expected, result, Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }
 
 // TestGetHostOSDistroFailures tests the failure cases of GetHostOSDistro
 // it cannot be run in TestGetHostOSDistro because the cache is not cleared
 // between tests
-func (s *TestSuite) TestGetHostOSDistroFailures(c *C) {
+func TestGetHostOSDistroFailures(t *testing.T) {
 	type testCase struct {
 		mockFileContent string
 	}
 	testCases := map[string]testCase{
-		"GetOSDistro(...): missing ID": {
+		"Missing ID": {
 			mockFileContent: `NAME="SLES"
 VERSION="15-SP3"
 VERSION_ID="15.3"
@@ -104,15 +99,15 @@ ID_LIKE="suse"`,
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing sys.%v", testName)
-
-		_, err := GetOSDistro(testCase.mockFileContent)
-		c.Assert(err, NotNil)
+		t.Run(testName, func(t *testing.T) {
+			_, err := GetOSDistro(testCase.mockFileContent)
+			assert.Error(t, err)
+		})
 	}
 }
 
-func (s *TestSuite) TestGetSystemBlockDevices(c *C) {
-	fakeDir := fake.CreateTempDirectory("", c)
+func TestGetSystemBlockDevices(t *testing.T) {
+	fakeDir := fake.CreateTempDirectory("", t)
 	defer func() {
 		_ = os.RemoveAll(fakeDir)
 	}()
@@ -124,7 +119,7 @@ func (s *TestSuite) TestGetSystemBlockDevices(c *C) {
 		expected map[string]types.BlockDeviceInfo
 	}
 	testCases := map[string]testCase{
-		"getSystemBlockDeviceInfo(...)": {
+		"Success": {
 			mockDirEntries: []fs.DirEntry{
 				fake.DirEntry("sda", true),
 				fake.DirEntry("sdb", true),
@@ -136,7 +131,7 @@ func (s *TestSuite) TestGetSystemBlockDevices(c *C) {
 				"sdc": {Name: "sdc", Major: 8, Minor: 2},
 			},
 		},
-		"getSystemBlockDeviceInfo(...): invalid file content": {
+		"Invalid file content": {
 			mockDirEntries: []fs.DirEntry{
 				fake.DirEntry("sda", true),
 				fake.DirEntry("sdb", true),
@@ -147,41 +142,41 @@ func (s *TestSuite) TestGetSystemBlockDevices(c *C) {
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing sys.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			fakeFS := fake.FileSystem{
+				DirEntries: testCase.mockDirEntries,
+				Data:       testCase.mockData,
+			}
 
-		fakeFS := fake.FileSystem{
-			DirEntries: testCase.mockDirEntries,
-			Data:       testCase.mockData,
-		}
+			for _, entry := range testCase.mockDirEntries {
+				// Create device directory
+				deviceDir := filepath.Join(fakeDir, entry.Name())
+				err := os.MkdirAll(deviceDir, 0755)
+				assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName, err))
 
-		for _, entry := range testCase.mockDirEntries {
-			// Create device directory
-			deviceDir := filepath.Join(fakeDir, entry.Name())
-			err := os.MkdirAll(deviceDir, 0755)
-			c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
+				// Create device file
+				devicePath := filepath.Join(deviceDir, "dev")
+				deviceFile, err := os.Create(devicePath)
+				errClose := deviceFile.Close()
+				assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName, err))
+				assert.NoError(t, errClose, Commentf(test.ErrErrorFmt, testName, errClose))
+			}
 
-			// Create device file
-			devicePath := filepath.Join(deviceDir, "dev")
-			deviceFile, err := os.Create(devicePath)
-			errClose := deviceFile.Close()
-			c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
-			c.Assert(errClose, IsNil, Commentf(test.ErrErrorFmt, testName, errClose))
-		}
-
-		result, err := getSystemBlockDeviceInfo(fakeDir, fakeFS.ReadDir, fakeFS.ReadFile)
-		c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
-		c.Assert(reflect.DeepEqual(result, testCase.expected), Equals, true, Commentf(test.ErrResultFmt, testName))
+			result, err := getSystemBlockDeviceInfo(fakeDir, fakeFS.ReadDir, fakeFS.ReadFile)
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName, err))
+			assert.True(t, reflect.DeepEqual(result, testCase.expected), Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }
 
-func (s *TestSuite) TestGetBootKernelConfigMap(c *C) {
+func TestGetBootKernelConfigMap(t *testing.T) {
 	type testCase struct {
 		mockFileContent   string
 		expectedConfigMap map[string]string
 		expectedError     bool
 	}
 	testCases := map[string]testCase{
-		"GetBootKernelConfigMap(...): read kernel config": {
+		"Read kernel config": {
 			mockFileContent: `CONFIG_DM_CRYPT=y
 # comment should be ignored
 CONFIG_NFS_V4=m
@@ -195,53 +190,53 @@ CONFIG_NFS_V4_2=y`,
 			},
 			expectedError: false,
 		},
-		"GetBootKernelConfigMap(...): empty kernel config": {
+		"Empty kernel config": {
 			mockFileContent:   "",
 			expectedConfigMap: map[string]string{},
 			expectedError:     false,
 		},
-		"GetBootKernelConfigMap(...): invalid content": {
+		"Invalid content": {
 			mockFileContent:   "key=val\nCONFIG_invalid_content\n",
 			expectedConfigMap: nil,
 			expectedError:     true,
 		},
 	}
 
-	bootDir := c.MkDir()
+	bootDir := fake.CreateTempDirectory("", t)
 	kernelVersion := "1.2.3.4"
 
 	for testName, testCase := range testCases {
-		c.Logf("testing sys.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			err := os.WriteFile(filepath.Join(bootDir, "config-"+kernelVersion), []byte(testCase.mockFileContent), 0644)
+			assert.NoError(t, err)
 
-		err := os.WriteFile(filepath.Join(bootDir, "config-"+kernelVersion), []byte(testCase.mockFileContent), 0644)
-		c.Assert(err, IsNil)
-
-		exact, err := GetBootKernelConfigMap(bootDir, kernelVersion)
-		c.Assert(exact, DeepEquals, testCase.expectedConfigMap, Commentf(test.ErrResultFmt, testName))
-		if testCase.expectedError {
-			c.Assert(err, NotNil, Commentf(test.ErrErrorFmt, testName, err))
-		} else {
-			c.Assert(err, IsNil)
-		}
+			exact, err := GetBootKernelConfigMap(bootDir, kernelVersion)
+			assert.Equal(t, testCase.expectedConfigMap, exact, Commentf(test.ErrResultFmt, testName))
+			if testCase.expectedError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName, err))
+			}
+		})
 	}
 }
-func (s *TestSuite) TestGetProcKernelConfigMap(c *C) {
+func TestGetProcKernelConfigMap(t *testing.T) {
 	genKernelConfig := func(dir string, lines ...string) {
 		path := filepath.Join(dir, types.SysKernelConfigGz)
 		file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
-		c.Assert(err, IsNil)
+		assert.NoError(t, err)
 		defer func() {
 			errClose := file.Close()
-			c.Assert(errClose, IsNil)
+			assert.NoError(t, errClose)
 		}()
 		gzWriter := gzip.NewWriter(file)
 		defer func() {
 			errClose := gzWriter.Close()
-			c.Assert(errClose, IsNil)
+			assert.NoError(t, errClose)
 		}()
 		for _, line := range lines {
 			_, err := fmt.Fprintln(gzWriter, line)
-			c.Assert(err, IsNil)
+			assert.NoError(t, err)
 		}
 	}
 
@@ -253,7 +248,7 @@ func (s *TestSuite) TestGetProcKernelConfigMap(c *C) {
 	}
 
 	testCases := map[string]testCase{
-		"GetProcKernelConfigMap(...): read kernel config": {
+		"Read kernel config": {
 			setup: func(dir string) {
 				genKernelConfig(dir,
 					"CONFIG_DM_CRYPT=y",
@@ -270,26 +265,26 @@ func (s *TestSuite) TestGetProcKernelConfigMap(c *C) {
 			},
 			expectedError: false,
 		},
-		"GetProcKernelConfigMap(...): empty kernel config": {
+		"Empty kernel config": {
 			setup:             func(dir string) { genKernelConfig(dir) },
 			expectedConfigMap: map[string]string{},
 			expectedError:     false,
 		},
-		"GetProcKernelConfigMap(...): invalid content": {
+		"Invalid content": {
 			setup:             func(dir string) { genKernelConfig(dir, "key=val\nCONFIG_invalid_content\n") },
 			expectedConfigMap: nil,
 			expectedError:     true,
 		},
 	}
 
-	procDir := c.MkDir()
+	procDir := fake.CreateTempDirectory("", t)
 
 	realConfigPath := filepath.Join(types.SysProcDirectory, types.SysKernelConfigGz)
 	if _, err := os.ReadFile(realConfigPath); err == nil {
-		testCases["GetProcKernelConfigMap(...): real config"] = testCase{
+		testCases["Real config"] = testCase{
 			setup: func(dir string) {
 				err := io.CopyFile(realConfigPath, filepath.Join(dir, types.SysKernelConfigGz), true)
-				c.Assert(err, IsNil)
+				assert.NoError(t, err)
 			},
 			expectedConfigMapChecker: func(cm map[string]string) bool {
 				return len(cm) > 0
@@ -299,20 +294,21 @@ func (s *TestSuite) TestGetProcKernelConfigMap(c *C) {
 	}
 
 	for testName, testCase := range testCases {
-		c.Logf("testing sys.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			testCase.setup(procDir)
 
-		testCase.setup(procDir)
+			exact, err := GetProcKernelConfigMap(procDir)
+			if testCase.expectedConfigMapChecker == nil {
+				assert.Equal(t, testCase.expectedConfigMap, exact, Commentf(test.ErrResultFmt, testName))
+			} else {
+				assert.True(t, testCase.expectedConfigMapChecker(exact), Commentf(test.ErrResultFmt, testName))
+			}
+			if testCase.expectedError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName, err))
+			}
+		})
 
-		exact, err := GetProcKernelConfigMap(procDir)
-		if testCase.expectedConfigMapChecker == nil {
-			c.Assert(exact, DeepEquals, testCase.expectedConfigMap, Commentf(test.ErrResultFmt, testName))
-		} else {
-			c.Assert(testCase.expectedConfigMapChecker(exact), Equals, true, Commentf(test.ErrResultFmt, testName))
-		}
-		if testCase.expectedError {
-			c.Assert(err, NotNil, Commentf(test.ErrErrorFmt, testName, err))
-		} else {
-			c.Assert(err, IsNil)
-		}
 	}
 }
