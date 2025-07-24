@@ -6,11 +6,14 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"testing"
 	"time"
 
-	"github.com/longhorn/types/pkg/generated/profilerrpc"
+	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 	. "gopkg.in/check.v1"
+
+	"github.com/longhorn/types/pkg/generated/profilerrpc"
 
 	"github.com/longhorn/go-common-libs/test"
 	"github.com/longhorn/go-common-libs/utils"
@@ -22,7 +25,7 @@ const (
 	opDISABLE = "DISABLE"
 )
 
-func (s TestSuite) TestProfilerServiceOperations(c *C) {
+func TestProfilerServiceOperations(t *testing.T) {
 	type testCase struct {
 		op         string
 		portNumber int32
@@ -31,17 +34,17 @@ func (s TestSuite) TestProfilerServiceOperations(c *C) {
 	}
 
 	testCases := map[string]testCase{
-		"ProfilerOP(...): show": {
+		"Show": {
 			op:         opSHOW,
 			portNumber: 0,
 			expectRet:  true,
 		},
-		"ProfilerOP(...): enable/disable": {
+		"Enable/Disable": {
 			op:         opENABLE,
 			portNumber: 55555,
 			expectRet:  true,
 		},
-		"ProfilerOP(...): invalidate op": {
+		"Invalidate op": {
 			op:         "INVALID",
 			portNumber: 0,
 			expectRet:  false,
@@ -50,7 +53,7 @@ func (s TestSuite) TestProfilerServiceOperations(c *C) {
 
 	grpcServerPort, err := utils.GenerateRandomNumber(50000, 55000)
 	if err != nil {
-		c.Fatalf("Failed to generate random number: %v", err)
+		t.Fatalf("Failed to generate random number: %v", err)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -58,25 +61,26 @@ func (s TestSuite) TestProfilerServiceOperations(c *C) {
 	client := server(ctx, grpcServerPort)
 
 	for testName, testCase := range testCases {
-		c.Logf("testing grpc.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			if testCase.expectRet == false {
+				_, err := client.ProfilerOP(testCase.op, testCase.portNumber)
+				assert.NotNil(t, err, Commentf(test.ErrResultFmt, testName))
+				return
+			}
 
-		if testCase.expectRet == false {
 			_, err := client.ProfilerOP(testCase.op, testCase.portNumber)
-			c.Assert(err, NotNil, Commentf(test.ErrResultFmt, testName))
-			continue
-		}
+			assert.Nil(t, err, Commentf(test.ErrResultFmt, testName))
 
-		_, err := client.ProfilerOP(testCase.op, testCase.portNumber)
-		c.Assert(err, IsNil, Commentf(test.ErrResultFmt, testName))
+			// test the Op_ENABLE we should also test the Op_DISABLE
+			if testCase.op == opENABLE {
+				assert.True(t, connected(testCase.portNumber), Commentf(test.ErrResultFmt, testName))
+				// Then, we disable it.
+				_, err := client.ProfilerOP(opDISABLE, testCase.portNumber)
+				assert.NoError(t, err, Commentf(test.ErrResultFmt, testName))
+				assert.False(t, connected(testCase.portNumber), Commentf(test.ErrResultFmt, testName))
+			}
+		})
 
-		// test the Op_ENABLE we should also test the Op_DISABLE
-		if testCase.op == opENABLE {
-			c.Assert(connected(testCase.portNumber), Equals, true, Commentf(test.ErrResultFmt, testName))
-			// Then, we disable it.
-			_, err := client.ProfilerOP(opDISABLE, testCase.portNumber)
-			c.Assert(err, IsNil, Commentf(test.ErrResultFmt, testName))
-			c.Assert(connected(testCase.portNumber), Equals, false, Commentf(test.ErrResultFmt, testName))
-		}
 	}
 }
 
