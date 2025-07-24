@@ -3,17 +3,18 @@ package ns
 import (
 	"fmt"
 	"os"
+	"testing"
 	"time"
 
-	. "gopkg.in/check.v1"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/longhorn/go-common-libs/test/fake"
 	"github.com/longhorn/go-common-libs/types"
 )
 
-func testCaseCopyDirectory(c *C) map[string]testCaseNamespaceMethods {
+func testCaseCopyDirectory(t *testing.T) map[string]testCaseNamespaceMethods {
 	return map[string]testCaseNamespaceMethods{
-		"CopyDirectory(...):": {
+		"CopyDirectory/Failed to run": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return nil, CopyDirectory("test", "test", false)
 			},
@@ -23,15 +24,15 @@ func testCaseCopyDirectory(c *C) map[string]testCaseNamespaceMethods {
 	}
 }
 
-func testCaseCreateDirectory(c *C) map[string]testCaseNamespaceMethods {
+func testCaseCreateDirectory(t *testing.T) map[string]testCaseNamespaceMethods {
 	return map[string]testCaseNamespaceMethods{
-		"CreateDirectory(...):": {
+		"CreateDirectory/Success": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return CreateDirectory("test", time.Now())
 			},
 			mockResult: "result",
 		},
-		"CreateDirectory(...): failed to run": {
+		"CreateDirectory/Failed to run": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return CreateDirectory("test", time.Now())
 			},
@@ -41,9 +42,9 @@ func testCaseCreateDirectory(c *C) map[string]testCaseNamespaceMethods {
 	}
 }
 
-func testCaseDeleteDirectory(c *C) map[string]testCaseNamespaceMethods {
+func testCaseDeleteDirectory(t *testing.T) map[string]testCaseNamespaceMethods {
 	return map[string]testCaseNamespaceMethods{
-		"DeleteDirectory(...): failed to run": {
+		"DeleteDirectory/Failed to run": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return nil, DeleteDirectory("test")
 			},
@@ -53,12 +54,12 @@ func testCaseDeleteDirectory(c *C) map[string]testCaseNamespaceMethods {
 	}
 }
 
-func testCaseReadDirectory(c *C) map[string]testCaseNamespaceMethods {
+func testCaseReadDirectory(t *testing.T) map[string]testCaseNamespaceMethods {
 	mockResult, err := os.ReadDir("/tmp")
-	c.Assert(err, IsNil)
+	assert.NoError(t, err)
 
 	return map[string]testCaseNamespaceMethods{
-		"ReadDirectory(...): failed to run": {
+		"ReadDirectory/Failed to run": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return ReadDirectory("test")
 			},
@@ -67,9 +68,9 @@ func testCaseReadDirectory(c *C) map[string]testCaseNamespaceMethods {
 	}
 }
 
-func testCaseCopyFiles(c *C) map[string]testCaseNamespaceMethods {
+func testCaseCopyFiles(t *testing.T) map[string]testCaseNamespaceMethods {
 	return map[string]testCaseNamespaceMethods{
-		"CopyFiles(...): failed to run": {
+		"CopyFiles/Failed to run": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return nil, CopyFiles("test", "test", false)
 			},
@@ -79,22 +80,22 @@ func testCaseCopyFiles(c *C) map[string]testCaseNamespaceMethods {
 	}
 }
 
-func testCaseGetEmptyFiles(c *C) map[string]testCaseNamespaceMethods {
+func testCaseGetEmptyFiles(t *testing.T) map[string]testCaseNamespaceMethods {
 	return map[string]testCaseNamespaceMethods{
-		"GetEmptyFiles(...)": {
+		"GetEmptyFiles/Success": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return GetEmptyFiles("test")
 			},
 			mockResult: []string{"test"},
 		},
-		"GetEmptyFiles(...): failed to run": {
+		"GetEmptyFiles/Failed to run": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return GetEmptyFiles("test")
 			},
 			mockError:   fmt.Errorf("failed"),
 			expectError: true,
 		},
-		"GetEmptyFiles(...): failed to cast result": {
+		"GetEmptyFiles/Failed to cast result": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return GetEmptyFiles("test")
 			},
@@ -104,37 +105,37 @@ func testCaseGetEmptyFiles(c *C) map[string]testCaseNamespaceMethods {
 	}
 }
 
-func testCaseGetFileInfo(c *C) map[string]testCaseNamespaceMethods {
-	fakeDir := fake.CreateTempDirectory("", c)
+func testCaseGetFileInfo(t *testing.T) map[string]testCaseNamespaceMethods {
+	fakeDir := fake.CreateTempDirectory("", t)
 	defer func() {
 		errRemove := os.RemoveAll(fakeDir)
-		c.Assert(errRemove, IsNil)
+		assert.NoError(t, errRemove)
 	}()
 
-	fakeFile := fake.CreateTempFile(fakeDir, "", "content", c)
+	fakeFile := fake.CreateTempFile(fakeDir, "", "content", t)
 	defer func() {
 		errClose := fakeFile.Close()
-		c.Assert(errClose, IsNil)
+		assert.NoError(t, errClose)
 	}()
 
 	mockResult, err := fakeFile.Stat()
-	c.Assert(err, IsNil)
+	assert.NoError(t, err)
 
 	return map[string]testCaseNamespaceMethods{
-		"GetFileInfo(...)": {
+		"GetFileInfo/Success": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return GetFileInfo("test")
 			},
 			mockResult: mockResult,
 		},
-		"GetFileInfo(...): failed to run": {
+		"GetFileInfo/Failed to run": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return GetFileInfo("test")
 			},
 			mockError:   fmt.Errorf("failed"),
 			expectError: true,
 		},
-		"GetFileInfo(...): failed to cast result": {
+		"GetFileInfo/Failed to cast result": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return GetFileInfo("test")
 			},
@@ -144,22 +145,22 @@ func testCaseGetFileInfo(c *C) map[string]testCaseNamespaceMethods {
 	}
 }
 
-func testCaseReadFileContent(c *C) map[string]testCaseNamespaceMethods {
+func testCaseReadFileContent(t *testing.T) map[string]testCaseNamespaceMethods {
 	return map[string]testCaseNamespaceMethods{
-		"ReadFileContent(...)": {
+		"ReadFileContent/Success": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return ReadFileContent("test")
 			},
 			mockResult: "result",
 		},
-		"ReadFileContent(...): failed to run": {
+		"ReadFileContent/Failed to run": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return ReadFileContent("test")
 			},
 			mockError:   fmt.Errorf("failed"),
 			expectError: true,
 		},
-		"ReadFileContent(...): failed to cast result": {
+		"ReadFileContent/Failed to cast result": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return ReadFileContent("test")
 			},
@@ -169,9 +170,9 @@ func testCaseReadFileContent(c *C) map[string]testCaseNamespaceMethods {
 	}
 }
 
-func testCaseSyncFile(c *C) map[string]testCaseNamespaceMethods {
+func testCaseSyncFile(t *testing.T) map[string]testCaseNamespaceMethods {
 	return map[string]testCaseNamespaceMethods{
-		"SyncFile(...): failed to run": {
+		"SyncFile/Failed to run": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return nil, SyncFile("test")
 			},
@@ -181,9 +182,9 @@ func testCaseSyncFile(c *C) map[string]testCaseNamespaceMethods {
 	}
 }
 
-func testCaseWriteFile(c *C) map[string]testCaseNamespaceMethods {
+func testCaseWriteFile(t *testing.T) map[string]testCaseNamespaceMethods {
 	return map[string]testCaseNamespaceMethods{
-		"WriteFile(...): failed to run": {
+		"WriteFile/Failed to run": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return nil, WriteFile("test", "test")
 			},
@@ -193,9 +194,9 @@ func testCaseWriteFile(c *C) map[string]testCaseNamespaceMethods {
 	}
 }
 
-func testCaseDeletePath(c *C) map[string]testCaseNamespaceMethods {
+func testCaseDeletePath(t *testing.T) map[string]testCaseNamespaceMethods {
 	return map[string]testCaseNamespaceMethods{
-		"DeletePath(...): failed to run": {
+		"DeletePath/Failed to run": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return nil, DeletePath("test")
 			},
@@ -205,22 +206,22 @@ func testCaseDeletePath(c *C) map[string]testCaseNamespaceMethods {
 	}
 }
 
-func testCaseGetDiskStat(c *C) map[string]testCaseNamespaceMethods {
+func testCaseGetDiskStat(t *testing.T) map[string]testCaseNamespaceMethods {
 	return map[string]testCaseNamespaceMethods{
-		"GetDiskStat(...)": {
+		"GetDiskStat/Success": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return GetDiskStat("test")
 			},
 			mockResult: types.DiskStat{},
 		},
-		"GetDiskStat(...): failed to run": {
+		"GetDiskStat/Failed to run": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return GetDiskStat("test")
 			},
 			mockError:   fmt.Errorf("failed"),
 			expectError: true,
 		},
-		"GetDiskStat(...): failed to cast result": {
+		"GetDiskStat/Failed to cast result": {
 			method: func(args ...interface{}) (interface{}, error) {
 				return GetDiskStat("test")
 			},

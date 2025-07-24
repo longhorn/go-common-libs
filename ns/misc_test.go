@@ -2,8 +2,10 @@ package ns
 
 import (
 	"fmt"
+	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	. "gopkg.in/check.v1"
 
 	"github.com/longhorn/go-common-libs/test"
@@ -11,7 +13,7 @@ import (
 	"github.com/longhorn/go-common-libs/types"
 )
 
-func (s *TestSuite) TestGetBaseProcessName(c *C) {
+func TestGetBaseProcessName(t *testing.T) {
 	defer func() {
 		NewJoiner = newJoiner
 	}()
@@ -24,30 +26,30 @@ func (s *TestSuite) TestGetBaseProcessName(c *C) {
 		expectedProcess string
 	}
 	testCases := map[string]testCase{
-		"GetBaseProcessName(...)": {
+		"SLES": {
 			osDistroFileContent: `ID="sles"`,
 			expectedProcess:     types.ProcessNone,
 		},
-		"GetBaseProcessName(...): Talos Linux": {
+		"Talos Linux": {
 			osDistroFileContent: `ID="talos"`,
 			expectedProcess:     types.ProcessKubelet,
 		},
-		"GetBaseProcessName(...): fallback": {
+		"Fallback": {
 			mockError:       fmt.Errorf("failed"),
 			expectedProcess: types.ProcessNone,
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing namespace.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			NewJoiner = func(string, time.Duration) (JoinerInterface, error) {
+				return &fake.Joiner{
+					MockResult: testCase.osDistroFileContent,
+					MockError:  testCase.mockError,
+				}, nil
+			}
 
-		NewJoiner = func(string, time.Duration) (JoinerInterface, error) {
-			return &fake.Joiner{
-				MockResult: testCase.osDistroFileContent,
-				MockError:  testCase.mockError,
-			}, nil
-		}
-
-		process := GetDefaultProcessName()
-		c.Assert(process, Equals, testCase.expectedProcess, Commentf(test.ErrResultFmt, testName))
+			process := GetDefaultProcessName()
+			assert.Equal(t, testCase.expectedProcess, process, Commentf(test.ErrResultFmt, testName))
+		})
 	}
 }

@@ -2,120 +2,122 @@ package ns
 
 import (
 	"strings"
+	"testing"
 	"time"
 
-	. "gopkg.in/check.v1"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/longhorn/go-common-libs/test/fake"
 	"github.com/longhorn/go-common-libs/types"
 )
 
-func (s *TestSuite) TestExecute(c *C) {
+func TestExecute(t *testing.T) {
 	type testCase struct {
 		nsDirectory string
 	}
 	testCases := map[string]testCase{
-		"Execute(...)": {},
-		"Execute(...): with namespace": {
+		"Current namespace": {},
+		"Different namespace": {
 			nsDirectory: "/mock",
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing namespace.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			namespaces := []types.Namespace{types.NamespaceMnt, types.NamespaceNet}
+			nsexec, err := NewNamespaceExecutor(types.ProcessNone, types.HostProcDirectory, namespaces)
+			assert.Nil(t, err)
 
-		namespaces := []types.Namespace{types.NamespaceMnt, types.NamespaceNet}
-		nsexec, err := NewNamespaceExecutor(types.ProcessNone, types.HostProcDirectory, namespaces)
-		c.Assert(err, IsNil)
+			nsexec.nsDirectory = testCase.nsDirectory
+			nsexec.executor = &fake.Executor{}
 
-		nsexec.nsDirectory = testCase.nsDirectory
-		nsexec.executor = &fake.Executor{}
+			output, err := nsexec.Execute(nil, "binary", []string{"arg1", "arg2"}, types.ExecuteDefaultTimeout)
+			assert.Nil(t, err)
+			assert.Equal(t, "output", output)
 
-		output, err := nsexec.Execute(nil, "binary", []string{"arg1", "arg2"}, types.ExecuteDefaultTimeout)
-		c.Assert(err, IsNil)
-		c.Assert(output, Equals, "output")
+		})
 	}
 }
 
-func (s *TestSuite) TestExecuteWithTimeout(c *C) {
+func TestExecuteWithTimeout(t *testing.T) {
 	type testCase struct {
 		timeout time.Duration
 	}
 	testCases := map[string]testCase{
-		"Execute(...):": {
+		"Current namespace": {
 			timeout: types.ExecuteNoTimeout,
 		},
-		"Execute(...): with namespace": {
+		"Different namespace": {
 			timeout: types.ExecuteNoTimeout,
 		},
-		"Execute(...): with timeout": {
+		"With timeout": {
 			timeout: 10 * time.Second,
 		},
-		"Execute(...): with namespace and timeout": {
+		"With namespace and timeout": {
 			timeout: 10 * time.Second,
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing namespace.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			namespaces := []types.Namespace{types.NamespaceMnt, types.NamespaceNet}
+			nsexec, err := NewNamespaceExecutor(types.ProcessNone, types.HostProcDirectory, namespaces)
+			assert.Nil(t, err)
 
-		namespaces := []types.Namespace{types.NamespaceMnt, types.NamespaceNet}
-		nsexec, err := NewNamespaceExecutor(types.ProcessNone, types.HostProcDirectory, namespaces)
-		c.Assert(err, IsNil)
+			nsexec.executor = &fake.Executor{}
 
-		nsexec.executor = &fake.Executor{}
-
-		output, err := nsexec.Execute(nil, "binary", []string{"arg1", "arg2"}, testCase.timeout)
-		c.Assert(err, IsNil)
-		c.Assert(output, Equals, "output")
+			output, err := nsexec.Execute(nil, "binary", []string{"arg1", "arg2"}, testCase.timeout)
+			assert.Nil(t, err)
+			assert.Equal(t, "output", output)
+		})
 	}
 }
 
-func (s *TestSuite) TestExecuteWithStdinPipe(c *C) {
+func TestExecuteWithStdinPipe(t *testing.T) {
 	type testCase struct {
 		nsDirectory string
 	}
 	testCases := map[string]testCase{
-		"ExecuteWithStdinPipe(...)": {},
-		"ExecuteWithStdinPipe(...): with namespace": {
+		"Current namespace": {},
+		"Different namespace": {
 			nsDirectory: "/mock",
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing namespace.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			namespaces := []types.Namespace{types.NamespaceMnt, types.NamespaceNet}
+			nsexec, err := NewNamespaceExecutor(types.ProcessNone, types.HostProcDirectory, namespaces)
+			assert.NoError(t, err)
 
-		namespaces := []types.Namespace{types.NamespaceMnt, types.NamespaceNet}
-		nsexec, err := NewNamespaceExecutor(types.ProcessNone, types.HostProcDirectory, namespaces)
-		c.Assert(err, IsNil)
+			nsexec.nsDirectory = testCase.nsDirectory
+			nsexec.executor = &fake.Executor{}
 
-		nsexec.nsDirectory = testCase.nsDirectory
-		nsexec.executor = &fake.Executor{}
-
-		output, err := nsexec.ExecuteWithStdinPipe(nil, "binary", []string{"arg1", "arg2"}, "stdin", types.ExecuteDefaultTimeout)
-		c.Assert(err, IsNil)
-		c.Assert(output, Equals, "output")
+			output, err := nsexec.ExecuteWithStdinPipe(nil, "binary", []string{"arg1", "arg2"}, "stdin", types.ExecuteDefaultTimeout)
+			assert.NoError(t, err)
+			assert.Equal(t, "output", output)
+		})
 	}
 }
 
-func (s *TestSuite) TestExecuteWithEnvs(c *C) {
+func TestExecuteWithEnvs(t *testing.T) {
 	type testCase struct {
 		timeout time.Duration
 	}
 	testCases := map[string]testCase{
-		"Execute(...)": {
+		"Current namespace": {
 			timeout: types.ExecuteNoTimeout,
 		},
-		"Execute(...): with namespace": {
+		"Different namespace": {
 			timeout: types.ExecuteNoTimeout,
 		},
 	}
 	for testName := range testCases {
-		c.Logf("testing namespace.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			namespaces := []types.Namespace{}
+			nsexec, err := NewNamespaceExecutor(types.ProcessNone, types.HostProcDirectory, namespaces)
+			assert.NoError(t, err)
 
-		namespaces := []types.Namespace{}
-		nsexec, err := NewNamespaceExecutor(types.ProcessNone, types.HostProcDirectory, namespaces)
-		c.Assert(err, IsNil)
-
-		output, err := nsexec.Execute([]string{"K1=V1", "K2=V2"}, "env", nil, types.ExecuteDefaultTimeout)
-		c.Assert(err, IsNil)
-		c.Assert(strings.Contains(output, "K1=V1\nK2=V2\n"), Equals, true)
+			output, err := nsexec.Execute([]string{"K1=V1", "K2=V2"}, "env", nil, types.ExecuteDefaultTimeout)
+			assert.NoError(t, err)
+			assert.True(t, strings.Contains(output, "K1=V1\nK2=V2\n"))
+		})
 	}
 }

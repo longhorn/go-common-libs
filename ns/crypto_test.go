@@ -1,108 +1,110 @@
 package ns
 
 import (
-	. "gopkg.in/check.v1"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/longhorn/go-common-libs/test/fake"
 	"github.com/longhorn/go-common-libs/types"
 )
 
-func (s *TestSuite) TestLuksOpen(c *C) {
+func TestLuksOpen(t *testing.T) {
 	type testCase struct{}
 	testCases := map[string]testCase{
-		"LuksOpen(...)": {},
+		"Execute command": {},
 	}
 	for testName := range testCases {
-		c.Logf("testing namespace.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			namespaces := []types.Namespace{types.NamespaceMnt, types.NamespaceIpc}
+			nsexec, err := NewNamespaceExecutor(types.ProcessNone, types.HostProcDirectory, namespaces)
+			assert.Nil(t, err)
 
-		namespaces := []types.Namespace{types.NamespaceMnt, types.NamespaceIpc}
-		nsexec, err := NewNamespaceExecutor(types.ProcessNone, types.HostProcDirectory, namespaces)
-		c.Assert(err, IsNil)
+			nsexec.executor = &fake.Executor{}
 
-		nsexec.executor = &fake.Executor{}
-
-		output, err := nsexec.LuksOpen("", "", "", types.LuksTimeout)
-		c.Assert(err, IsNil)
-		c.Assert(output, Equals, "output")
+			output, err := nsexec.LuksOpen("", "", "", types.LuksTimeout)
+			assert.Nil(t, err)
+			assert.Equal(t, "output", output)
+		})
 	}
 }
 
-func (s *TestSuite) TestLuksClose(c *C) {
+func TestLuksClose(t *testing.T) {
 	type testCase struct{}
 	testCases := map[string]testCase{
-		"LuksClose(...)": {},
+		"Execute command": {},
 	}
 	for testName := range testCases {
-		c.Logf("testing namespace.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			namespaces := []types.Namespace{types.NamespaceMnt, types.NamespaceIpc}
+			nsexec, err := NewNamespaceExecutor(types.ProcessNone, types.HostProcDirectory, namespaces)
+			assert.Nil(t, err)
 
-		namespaces := []types.Namespace{types.NamespaceMnt, types.NamespaceIpc}
-		nsexec, err := NewNamespaceExecutor(types.ProcessNone, types.HostProcDirectory, namespaces)
-		c.Assert(err, IsNil)
+			nsexec.executor = &fake.Executor{}
 
-		nsexec.executor = &fake.Executor{}
-
-		output, err := nsexec.LuksClose("", types.LuksTimeout)
-		c.Assert(err, IsNil)
-		c.Assert(output, Equals, "output")
+			output, err := nsexec.LuksClose("", types.LuksTimeout)
+			assert.Nil(t, err)
+			assert.Equal(t, "output", output)
+		})
 	}
 }
 
-func (s *TestSuite) TestLuksFormat(c *C) {
+func TestLuksFormat(t *testing.T) {
 	type testCase struct{}
 	testCases := map[string]testCase{
-		"LuksFormat(...)": {},
+		"Execute command": {},
 	}
 	for testName := range testCases {
-		c.Logf("testing namespace.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			namespaces := []types.Namespace{types.NamespaceMnt, types.NamespaceIpc}
+			nsexec, err := NewNamespaceExecutor(types.ProcessNone, types.HostProcDirectory, namespaces)
+			assert.Nil(t, err)
 
-		namespaces := []types.Namespace{types.NamespaceMnt, types.NamespaceIpc}
-		nsexec, err := NewNamespaceExecutor(types.ProcessNone, types.HostProcDirectory, namespaces)
-		c.Assert(err, IsNil)
+			nsexec.executor = &fake.Executor{}
 
-		nsexec.executor = &fake.Executor{}
-
-		output, err := nsexec.LuksFormat("", "", "", "", "", "", types.LuksTimeout)
-		c.Assert(err, IsNil)
-		c.Assert(output, Equals, "output")
+			output, err := nsexec.LuksFormat("", "", "", "", "", "", types.LuksTimeout)
+			assert.Nil(t, err)
+			assert.Equal(t, "output", output)
+		})
 	}
 }
 
-func (s *TestSuite) TestLuksResize(c *C) {
+func TestLuksResize(t *testing.T) {
 	type testCase struct{}
 	testCases := map[string]testCase{
-		"LuksResize(...)": {},
+		"Execute command": {},
 	}
 	for testName := range testCases {
-		c.Logf("testing namespace.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			namespaces := []types.Namespace{types.NamespaceMnt, types.NamespaceIpc}
+			nsexec, err := NewNamespaceExecutor(types.ProcessNone, types.HostProcDirectory, namespaces)
+			assert.Nil(t, err)
 
-		namespaces := []types.Namespace{types.NamespaceMnt, types.NamespaceIpc}
-		nsexec, err := NewNamespaceExecutor(types.ProcessNone, types.HostProcDirectory, namespaces)
-		c.Assert(err, IsNil)
+			nsexec.executor = &fake.Executor{}
 
-		nsexec.executor = &fake.Executor{}
-
-		output, err := nsexec.LuksResize("", "", types.LuksTimeout)
-		c.Assert(err, IsNil)
-		c.Assert(output, Equals, "output")
+			output, err := nsexec.LuksResize("", "", types.LuksTimeout)
+			assert.Nil(t, err)
+			assert.Equal(t, "output", output)
+		})
 	}
 }
 
-func (s *TestSuite) TestLuksStatus(c *C) {
+func TestLuksStatus(t *testing.T) {
 	type testCase struct{}
 	testCases := map[string]testCase{
-		"LuksStatus(...)": {},
+		"Execute command": {},
 	}
 	for testName := range testCases {
-		c.Logf("testing namespace.%v", testName)
+		t.Run(testName, func(t *testing.T) {
+			namespaces := []types.Namespace{types.NamespaceMnt, types.NamespaceIpc}
+			nsexec, err := NewNamespaceExecutor(types.ProcessNone, types.HostProcDirectory, namespaces)
+			assert.Nil(t, err)
 
-		namespaces := []types.Namespace{types.NamespaceMnt, types.NamespaceIpc}
-		nsexec, err := NewNamespaceExecutor(types.ProcessNone, types.HostProcDirectory, namespaces)
-		c.Assert(err, IsNil)
+			nsexec.executor = &fake.Executor{}
 
-		nsexec.executor = &fake.Executor{}
-
-		output, err := nsexec.LuksStatus("", types.LuksTimeout)
-		c.Assert(err, IsNil)
-		c.Assert(output, Equals, "output")
+			output, err := nsexec.LuksStatus("", types.LuksTimeout)
+			assert.Nil(t, err)
+			assert.Equal(t, "output", output)
+		})
 	}
 }

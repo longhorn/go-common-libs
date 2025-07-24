@@ -4,15 +4,17 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	. "gopkg.in/check.v1"
 
 	"github.com/longhorn/go-common-libs/test"
 	"github.com/longhorn/go-common-libs/test/fake"
 )
 
-func (s *TestSuite) TestRun(c *C) {
+func TestRun(t *testing.T) {
 	stopCh := make(chan struct{})
 	defer close(stopCh)
 
@@ -23,62 +25,62 @@ func (s *TestSuite) TestRun(c *C) {
 		expectError   bool
 	}
 	testCases := map[string]testCase{
-		"Run(...)": {
+		"Run codes": {
 			procDirectory: "/proc",
 			expectError:   false,
 		},
-		"Run(...): invalid proc directory": {
+		"Invalid proc directory": {
 			procDirectory: "/invalid",
 			expectError:   true,
 		},
-		"Run(...): default proc directory": {
+		"Default proc directory": {
 			procDirectory: "",
 			expectError:   false,
 		},
-		"Run(...): run in specific process namespace": {
+		"Run command in specific process namespace": {
 			procCmd:       []string{"sleep", "infinity"},
 			procDirectory: "/proc",
 			expectError:   false,
 		},
-		"Run(...): timeout": {
+		"Timeout": {
 			procDirectory: "/proc",
 			timeout:       1 * time.Second,
 			expectError:   true,
 		},
 	}
 	for testName, testCase := range testCases {
-		c.Logf("testing namespace.%v", testName)
-
-		proc := ""
-		if len(testCase.procCmd) != 0 {
-			proc = testCase.procCmd[0]
-			dummpyProcCmd := exec.Command(proc, testCase.procCmd[1:]...)
-			err := dummpyProcCmd.Start()
-			c.Assert(err, IsNil)
-			_ = dummpyProcCmd.Process.Kill()
-		}
-
-		// Create the Enter instance using mock ProcessNamespace
-		nsjoin, err := newJoiner(testCase.procDirectory, testCase.timeout)
-		c.Assert(err, IsNil)
-
-		// Define a function to be executed in the namespace
-		wait := testCase.timeout + time.Second
-		fn := func() (interface{}, error) {
-			time.Sleep(wait)
-			return os.Stat("/tmp")
-		}
-
-		_, err = nsjoin.Run(fn)
-		if testCase.expectError {
-			c.Assert(err, NotNil)
-
-			if testCase.timeout > 0 {
-				c.Assert(strings.HasPrefix(err.Error(), "timeout"), Equals, true)
+		t.Run(testName, func(t *testing.T) {
+			proc := ""
+			if len(testCase.procCmd) != 0 {
+				proc = testCase.procCmd[0]
+				dummpyProcCmd := exec.Command(proc, testCase.procCmd[1:]...)
+				err := dummpyProcCmd.Start()
+				assert.NoError(t, err)
+				_ = dummpyProcCmd.Process.Kill()
 			}
-			continue
-		}
-		c.Assert(err, IsNil)
+
+			// Create the Enter instance using mock ProcessNamespace
+			nsjoin, err := newJoiner(testCase.procDirectory, testCase.timeout)
+			assert.NoError(t, err)
+
+			// Define a function to be executed in the namespace
+			wait := testCase.timeout + time.Second
+			fn := func() (interface{}, error) {
+				time.Sleep(wait)
+				return os.Stat("/tmp")
+			}
+
+			_, err = nsjoin.Run(fn)
+			if testCase.expectError {
+				assert.Error(t, err)
+
+				if testCase.timeout > 0 {
+					assert.True(t, strings.HasPrefix(err.Error(), "timeout"))
+				}
+				return
+			}
+			assert.NoError(t, err)
+		})
 	}
 }
 
@@ -94,9 +96,7 @@ type testCaseNamespaceMethods struct {
 	expectError bool
 }
 
-func runNamespaceMethodTest(c *C, testName string, testCase testCaseNamespaceMethods) {
-	c.Logf("testing namespace.%v", testName)
-
+func runNamespaceMethodTest(t *testing.T, testName string, testCase testCaseNamespaceMethods) {
 	NewJoiner = func(string, time.Duration) (JoinerInterface, error) {
 		return &fake.Joiner{
 			MockResult: testCase.mockResult,
@@ -112,36 +112,36 @@ func runNamespaceMethodTest(c *C, testName string, testCase testCaseNamespaceMet
 
 	result, err := testCase.method(testCase.methodArgs...)
 	if testCase.expectError {
-		c.Assert(err, NotNil)
+		assert.Error(t, err, Commentf(test.ErrErrorFmt, testName, err))
 		return
 	}
 
-	c.Assert(err, IsNil, Commentf(test.ErrErrorFmt, testName, err))
+	assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName, err))
 
 	if testCase.expected != nil {
-		c.Assert(result, Equals, testCase.expected, Commentf(test.ErrResultFmt, testName))
+		assert.Equal(t, testCase.expected, result, Commentf(test.ErrResultFmt, testName))
 	}
 }
 
-func (s *TestSuite) TestNamespaceMethods(c *C) {
+func TestNamespaceMethods(t *testing.T) {
 	testMethods := []map[string]testCaseNamespaceMethods{
-		testCaseGetArch(c),
-		testCaseKernelRelease(c),
-		testCaseSync(c),
-		testCaseGetOSDistro(c),
-		testCaseGetSystemBlockDevices(c),
-		testCaseCopyDirectory(c),
-		testCaseCreateDirectory(c),
-		testCaseDeleteDirectory(c),
-		testCaseReadDirectory(c),
-		testCaseCopyFiles(c),
-		testCaseGetEmptyFiles(c),
-		testCaseGetFileInfo(c),
-		testCaseReadFileContent(c),
-		testCaseSyncFile(c),
-		testCaseWriteFile(c),
-		testCaseDeletePath(c),
-		testCaseGetDiskStat(c),
+		testCaseGetArch(t),
+		testCaseKernelRelease(t),
+		testCaseSync(t),
+		testCaseGetOSDistro(t),
+		testCaseGetSystemBlockDevices(t),
+		testCaseCopyDirectory(t),
+		testCaseCreateDirectory(t),
+		testCaseDeleteDirectory(t),
+		testCaseReadDirectory(t),
+		testCaseCopyFiles(t),
+		testCaseGetEmptyFiles(t),
+		testCaseGetFileInfo(t),
+		testCaseReadFileContent(t),
+		testCaseSyncFile(t),
+		testCaseWriteFile(t),
+		testCaseDeletePath(t),
+		testCaseGetDiskStat(t),
 	}
 	testCases := make(map[string]testCaseNamespaceMethods)
 	for _, testMethod := range testMethods {
@@ -150,6 +150,8 @@ func (s *TestSuite) TestNamespaceMethods(c *C) {
 		}
 	}
 	for testName, testCase := range testCases {
-		runNamespaceMethodTest(c, testName, testCase)
+		t.Run(testName, func(t *testing.T) {
+			runNamespaceMethodTest(t, testName, testCase)
+		})
 	}
 }
