@@ -10,4 +10,4 @@ PACKAGES="$(find -name '*.go' | xargs -I{} dirname {} | cut -f2 -d/ | sort -u | 
 # Disable parallel executions as number of tests mocks NewJoiner
 [ "${ARCH}" == "amd64" ] && RACE=-race
 
-go test ${RACE} -parallel 1 -v -cover -coverprofile=coverage.out -tags=test ${PACKAGES} -check.v
+go test ${RACE} -parallel 1 -v -cover -coverprofile=coverage.out -tags=test ${PACKAGES}
