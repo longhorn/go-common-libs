@@ -12,9 +12,9 @@ require (
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.9.0
-	golang.org/x/exp v0.0.0-20250819193227-8b4c13bb791b
+	golang.org/x/exp v0.0.0-20250911091902-df9299821621
 	golang.org/x/sys v0.33.0
-	google.golang.org/grpc v1.75.0
+	google.golang.org/grpc v1.75.1
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	k8s.io/api v0.28.15
 	k8s.io/apimachinery v0.28.15
