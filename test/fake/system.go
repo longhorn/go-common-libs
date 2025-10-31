@@ -34,6 +34,7 @@ func DirEntry(name string, isDir bool) fs.DirEntry {
 	return &mockFile{name: name, isDir: isDir}
 }
 
+// mockFile simulates fs.DirEntry for tests
 type mockFile struct {
 	name  string
 	isDir bool
