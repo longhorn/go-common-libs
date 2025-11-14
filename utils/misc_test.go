@@ -10,6 +10,7 @@ import (
 	. "gopkg.in/check.v1"
 
 	"github.com/longhorn/go-common-libs/test"
+	"github.com/longhorn/go-common-libs/test/fake"
 )
 
 func TestContains(t *testing.T) {
@@ -519,4 +520,97 @@ func TestGetNumberFromMap(t *testing.T) {
 			})
 		}
 	})
+}
+
+func TestGetStringFromMap(t *testing.T) {
+	testCases := map[string]struct {
+		inputMap map[string]any
+		key      string
+		expected string
+	}{
+		"Valid string value": {
+			inputMap: map[string]any{"name": "test"},
+			key:      "name",
+			expected: "test",
+		},
+		"Key not found": {
+			inputMap: map[string]any{"name": "test"},
+			key:      "missing",
+			expected: "",
+		},
+		"Nil map": {
+			inputMap: nil,
+			key:      "name",
+			expected: "",
+		},
+		"Empty map": {
+			inputMap: map[string]any{},
+			key:      "name",
+			expected: "",
+		},
+		"Empty string value": {
+			inputMap: map[string]any{"name": ""},
+			key:      "name",
+			expected: "",
+		},
+		"Nil value": {
+			inputMap: map[string]any{"name": nil},
+			key:      "name",
+			expected: "",
+		},
+		"Int converted to string": {
+			inputMap: map[string]any{"count": 123},
+			key:      "count",
+			expected: "123",
+		},
+		"Float64 converted to string": {
+			inputMap: map[string]any{"price": 99.99},
+			key:      "price",
+			expected: "99.99",
+		},
+		"Bool converted to string": {
+			inputMap: map[string]any{"enabled": true},
+			key:      "enabled",
+			expected: "true",
+		},
+		"Negative number converted to string": {
+			inputMap: map[string]any{"temp": -10},
+			key:      "temp",
+			expected: "-10",
+		},
+		"Zero int converted to string": {
+			inputMap: map[string]any{"count": 0},
+			key:      "count",
+			expected: "0",
+		},
+		"False bool converted to string": {
+			inputMap: map[string]any{"enabled": false},
+			key:      "enabled",
+			expected: "false",
+		},
+		"String with special characters": {
+			inputMap: map[string]any{"path": "/dev/sda1"},
+			key:      "path",
+			expected: "/dev/sda1",
+		},
+		"String with spaces": {
+			inputMap: map[string]any{"message": "hello world"},
+			key:      "message",
+			expected: "hello world",
+		},
+		"fmt.Stringer value": {
+			inputMap: map[string]any{
+				"obj": fake.Stringer{V: "alpha"},
+			},
+			key:      "obj",
+			expected: "S:alpha",
+		},
+	}
+
+	for testName, tc := range testCases {
+		t.Run(testName, func(t *testing.T) {
+			result := GetStringFromMap(tc.inputMap, tc.key)
+			assert.Equal(t, tc.expected, result, Commentf(test.ErrResultFmt, testName))
+		})
+	}
 }
