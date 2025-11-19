@@ -192,3 +192,30 @@ func GetNumberFromMap[T GetNumberFromMapSupportedTypes](mapObj map[string]any, k
 
 	return zero
 }
+
+// GetStringFromMap retrieves a string value from a map[string]any.
+//
+// It looks up the value associated with the given key in mapObj and returns it
+// as a string. Behavior:
+//   - If the key does not exist or the value is nil, it returns an empty string.
+//   - If the value is already a string, it is returned directly.
+//   - If the value implements fmt.Stringer, its String() method is called and returned.
+//   - For any other value type, fmt.Sprint is used to convert it to a string.
+//
+// This function is useful for safely extracting string representations from
+// loosely-typed maps, such as JSON-decoded maps.
+func GetStringFromMap(mapObj map[string]any, key string) string {
+	value, ok := mapObj[key]
+	if !ok || value == nil {
+		return ""
+	}
+
+	switch v := value.(type) {
+	case string:
+		return v
+	case fmt.Stringer:
+		return v.String()
+	default:
+		return fmt.Sprint(value)
+	}
+}
