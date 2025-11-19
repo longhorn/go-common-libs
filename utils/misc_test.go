@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"math"
 	"strings"
 	"testing"
 
@@ -308,4 +309,214 @@ func runTestSortKeys[K constraints.Ordered, V any](t *testing.T, testCases map[s
 			assert.Equal(t, tc.expected, result, Commentf("Unexpected result in %v", testName))
 		})
 	}
+}
+
+func TestGetNumberFromMap(t *testing.T) {
+	t.Run("Uint64 type", func(t *testing.T) {
+		testCases := map[string]struct {
+			inputMap map[string]any
+			key      string
+			expected uint64
+		}{
+			"Nil map": {
+				inputMap: nil,
+				key:      "key",
+				expected: 0,
+			},
+			"Empty map": {
+				inputMap: map[string]any{},
+				key:      "key",
+				expected: 0,
+			},
+			"Valid uint64 value": {
+				inputMap: map[string]any{"count": uint64(100)},
+				key:      "count",
+				expected: 100,
+			},
+			"Float64 to uint64 conversion": {
+				inputMap: map[string]any{"count": float64(100)},
+				key:      "count",
+				expected: 100,
+			},
+			"Float64 with decimal to uint64 (truncates)": {
+				inputMap: map[string]any{"count": float64(100.99)},
+				key:      "count",
+				expected: 100,
+			},
+			"Key not found": {
+				inputMap: map[string]any{"count": uint64(100)},
+				key:      "missing",
+				expected: 0,
+			},
+			"Wrong type (string instead of uint64)": {
+				inputMap: map[string]any{"count": "100"},
+				key:      "count",
+				expected: 0,
+			},
+			"Zero value": {
+				inputMap: map[string]any{"count": uint64(0)},
+				key:      "count",
+				expected: 0,
+			},
+			"Nil value": {
+				inputMap: map[string]any{"count": nil},
+				key:      "count",
+				expected: 0,
+			},
+			"Large uint64 value": {
+				inputMap: map[string]any{"count": uint64(18446744073709551615)},
+				key:      "count",
+				expected: 18446744073709551615,
+			},
+			"Negative float64 value": {
+				inputMap: map[string]any{"count": float64(-1)},
+				key:      "count",
+				expected: 0,
+			},
+			"Float64 value exceeding max uint64": {
+				inputMap: map[string]any{"count": math.MaxFloat64},
+				key:      "count",
+				expected: 0,
+			},
+		}
+
+		for testName, tc := range testCases {
+			t.Run(testName, func(t *testing.T) {
+				result := GetNumberFromMap[uint64](tc.inputMap, tc.key)
+				assert.Equal(t, tc.expected, result, Commentf(test.ErrResultFmt, testName))
+			})
+		}
+	})
+
+	t.Run("Uint16 type", func(t *testing.T) {
+		testCases := map[string]struct {
+			inputMap map[string]any
+			key      string
+			expected uint16
+		}{
+			"Valid uint16 value": {
+				inputMap: map[string]any{"temp": uint16(25)},
+				key:      "temp",
+				expected: 25,
+			},
+			"Float64 to uint16 conversion": {
+				inputMap: map[string]any{"temp": float64(25)},
+				key:      "temp",
+				expected: 25,
+			},
+			"Float64 with decimal to uint16 (truncates)": {
+				inputMap: map[string]any{"temp": float64(10.5)},
+				key:      "temp",
+				expected: 10,
+			},
+			"Key not found": {
+				inputMap: map[string]any{"temp": uint16(25)},
+				key:      "missing",
+				expected: 0,
+			},
+			"Wrong type": {
+				inputMap: map[string]any{"temp": "25"},
+				key:      "temp",
+				expected: 0,
+			},
+			"Nil value": {
+				inputMap: map[string]any{"temp": nil},
+				key:      "temp",
+				expected: 0,
+			},
+			"Zero value": {
+				inputMap: map[string]any{"temp": uint16(0)},
+				key:      "temp",
+				expected: 0,
+			},
+			"Max uint16 value": {
+				inputMap: map[string]any{"temp": uint16(65535)},
+				key:      "temp",
+				expected: 65535,
+			},
+			"Negative float64 value": {
+				inputMap: map[string]any{"temp": float64(-1)},
+				key:      "temp",
+				expected: 0,
+			},
+			"Float64 value exceeding max uint16": {
+				inputMap: map[string]any{"temp": float64(70000)},
+				key:      "temp",
+				expected: 0,
+			},
+		}
+
+		for testName, tc := range testCases {
+			t.Run(testName, func(t *testing.T) {
+				result := GetNumberFromMap[uint16](tc.inputMap, tc.key)
+				assert.Equal(t, tc.expected, result, Commentf(test.ErrResultFmt, testName))
+			})
+		}
+	})
+
+	t.Run("Uint8 type", func(t *testing.T) {
+		testCases := map[string]struct {
+			inputMap map[string]any
+			key      string
+			expected uint8
+		}{
+			"Valid uint8 value": {
+				inputMap: map[string]any{"key": uint8(1)},
+				key:      "key",
+				expected: 1,
+			},
+			"Float64 to uint8 conversion": {
+				inputMap: map[string]any{"key": float64(1)},
+				key:      "key",
+				expected: 1,
+			},
+			"Float64 with decimal to uint8 (truncates)": {
+				inputMap: map[string]any{"key": float64(5.7)},
+				key:      "key",
+				expected: 5,
+			},
+			"Key not found": {
+				inputMap: map[string]any{"key": uint8(1)},
+				key:      "missing",
+				expected: 0,
+			},
+			"Wrong type": {
+				inputMap: map[string]any{"key": "1"},
+				key:      "key",
+				expected: 0,
+			},
+			"Zero value": {
+				inputMap: map[string]any{"key": uint8(0)},
+				key:      "key",
+				expected: 0,
+			},
+			"Nil value": {
+				inputMap: map[string]any{"key": nil},
+				key:      "key",
+				expected: 0,
+			},
+			"Max uint8 value": {
+				inputMap: map[string]any{"key": uint8(255)},
+				key:      "key",
+				expected: 255,
+			},
+			"Negative float64 value": {
+				inputMap: map[string]any{"key": float64(-1)},
+				key:      "key",
+				expected: 0,
+			},
+			"Float64 value exceeding max uint8": {
+				inputMap: map[string]any{"key": float64(300)},
+				key:      "key",
+				expected: 0,
+			},
+		}
+
+		for testName, tc := range testCases {
+			t.Run(testName, func(t *testing.T) {
+				result := GetNumberFromMap[uint8](tc.inputMap, tc.key)
+				assert.Equal(t, tc.expected, result, Commentf(test.ErrResultFmt, testName))
+			})
+		}
+	})
 }
