@@ -25,7 +25,7 @@ func findBlockDeviceForMountWithFile(mountPath, mountsFile string) (string, erro
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to open %s", mountsFile)
 	}
-	defer f.Close()
+	defer f.Close() // nolint: errcheck // we don't care about errors here, we just want to close the file.
 
 	mountPath = filepath.Clean(mountPath)
 
