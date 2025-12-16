@@ -187,31 +187,3 @@ func resolveBlockDeviceToPhysicalDeviceWithDeps(
 
 	return "/dev/" + topDevice, nil
 }
-
-// ResolveMountPathToPhysicalDevice returns the physical block device (e.g., /dev/nvme0)
-// for the given mount path (e.g., /var/lib/longhorn)
-func ResolveMountPathToPhysicalDevice(mountPath string) (string, error) {
-	return resolveMountPathToPhysicalDeviceWithDeps(
-		mountPath,
-		"/proc/mounts",
-		filepath.EvalSymlinks,
-	)
-}
-
-// resolveMountPathToPhysicalDeviceWithDeps returns the top-level physical device
-// (e.g., /dev/nvme0 for NVMe, /dev/sda for SATA) corresponding to the given
-// mount path (e.g., /var/lib/longhorn).
-//
-// This function allows dependency injection for unit testing.
-func resolveMountPathToPhysicalDeviceWithDeps(
-	mountPath string,
-	mountsFile string,
-	evalSymlinks func(string) (string, error),
-) (string, error) {
-	blockDevice, err := findBlockDeviceForMountWithFile(mountPath, mountsFile)
-	if err != nil {
-		return "", err
-	}
-
-	return resolveBlockDeviceToPhysicalDeviceWithDeps(blockDevice, evalSymlinks)
-}
