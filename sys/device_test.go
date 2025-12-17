@@ -13,8 +13,10 @@ func TestFindBlockDeviceForMountWithFile(t *testing.T) {
 		name          string
 		mountsContent string
 		mountPath     string
+		resolveDevice func(string) (string, error)
 		expected      string
 		expectError   bool
+		errorContains string
 	}{
 		{
 			name: "find device for longhorn mount",
@@ -22,34 +24,84 @@ func TestFindBlockDeviceForMountWithFile(t *testing.T) {
 /dev/sda2 /home ext4 rw,relatime 0 0
 /dev/sdb1 /var/lib/longhorn ext4 rw,relatime 0 0`,
 			mountPath: "/var/lib/longhorn",
-			expected:  "/dev/sdb1",
+			resolveDevice: func(device string) (string, error) {
+				return device, nil // Mock: return device as-is
+			},
+			expected: "/dev/sdb1",
 		},
 		{
 			name: "mount path not found",
 			mountsContent: `/dev/sda1 / ext4 rw,relatime 0 0
 /dev/sda2 /home ext4 rw,relatime 0 0`,
-			mountPath:   "/nonexistent",
+			mountPath: "/nonexistent",
+			resolveDevice: func(device string) (string, error) {
+				return device, nil
+			},
 			expectError: true,
 		},
 		{
-			name: "device with UUID",
+			name: "device with UUID resolved to actual device",
 			mountsContent: `/dev/disk/by-uuid/12345678-1234-1234-1234-123456789012 /var/lib/longhorn ext4 rw,relatime 0 0
 /dev/sda1 / ext4 rw,relatime 0 0`,
 			mountPath: "/var/lib/longhorn",
-			expected:  "/dev/disk/by-uuid/12345678-1234-1234-1234-123456789012",
+			resolveDevice: func(device string) (string, error) {
+				if device == "/dev/disk/by-uuid/12345678-1234-1234-1234-123456789012" {
+					return "/dev/sda2", nil // Mock: resolve UUID to actual device
+				}
+				return device, nil
+			},
+			expected: "/dev/sda2",
 		},
 		{
 			name: "handle multiple spaces",
 			mountsContent: `/dev/sda1    /    ext4    rw,relatime    0    0
 /dev/sda2    /home    ext4    rw,relatime    0    0`,
 			mountPath: "/home",
-			expected:  "/dev/sda2",
+			resolveDevice: func(device string) (string, error) {
+				return device, nil
+			},
+			expected: "/dev/sda2",
 		},
 		{
 			name:          "empty mounts file",
 			mountsContent: "",
 			mountPath:     "/",
+			resolveDevice: func(device string) (string, error) {
+				return device, nil
+			},
+			expectError: true,
+		},
+		{
+			name: "LVM device mapper bypass",
+			mountsContent: `/dev/mapper/vg0-lv0 /var/lib/longhorn ext4 rw,relatime 0 0
+/dev/sda1 / ext4 rw,relatime 0 0`,
+			mountPath: "/var/lib/longhorn",
+			resolveDevice: func(device string) (string, error) {
+				t.Errorf("resolveDevice should not be called for /dev/mapper/ devices")
+				return "", assert.AnError
+			},
+			expected: "/dev/mapper/vg0-lv0",
+		},
+		{
+			name:          "device resolution error",
+			mountsContent: `/dev/sda1 /var/lib/longhorn ext4 rw,relatime 0 0`,
+			mountPath:     "/var/lib/longhorn",
+			resolveDevice: func(device string) (string, error) {
+				return "", assert.AnError
+			},
 			expectError:   true,
+			errorContains: "failed to resolve",
+		},
+		{
+			name: "reject pseudo-filesystem mount (tmpfs)",
+			mountsContent: `tmpfs /tmp tmpfs rw,nosuid,nodev 0 0
+/dev/sda1 / ext4 rw,relatime 0 0`,
+			mountPath: "/tmp",
+			resolveDevice: func(device string) (string, error) {
+				return device, nil
+			},
+			expectError:   true,
+			errorContains: "uses non-block device",
 		},
 	}
 
@@ -61,10 +113,13 @@ func TestFindBlockDeviceForMountWithFile(t *testing.T) {
 			err := os.WriteFile(mountsFile, []byte(tt.mountsContent), 0644)
 			assert.NoError(t, err)
 
-			device, err := findBlockDeviceForMountWithFile(tt.mountPath, mountsFile)
+			device, err := findBlockDeviceForMountWithDeps(tt.mountPath, mountsFile, tt.resolveDevice)
 
 			if tt.expectError {
 				assert.Error(t, err)
+				if tt.errorContains != "" {
+					assert.Contains(t, err.Error(), tt.errorContains)
+				}
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.expected, device)
