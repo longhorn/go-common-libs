@@ -73,24 +73,21 @@ func TestFindBlockDeviceForMountWithFile(t *testing.T) {
 	}
 }
 
-func TestResolveMountPathToPhysicalDevice(t *testing.T) {
+func TestResolveBlockDeviceToPhysicalDevice(t *testing.T) {
 	tests := []struct {
 		name           string
-		mountsContent  string
-		mountPath      string
+		blockDevice    string
 		evalSymlinksFn func(string) (string, error)
 		expected       string
 		expectError    bool
 		errorContains  string
 	}{
 		{
-			name: "nvme partition to top-level controller",
-			mountsContent: `/dev/disk/by-uuid/1234 /var/lib/longhorn ext4 rw,relatime 0 0
-		/dev/sda1 / ext4 rw,relatime 0 0`,
-			mountPath: "/var/lib/longhorn",
+			name:        "nvme partition to top-level controller",
+			blockDevice: "/dev/nvme0n1p2",
 			evalSymlinksFn: func(s string) (string, error) {
 				switch s {
-				case "/dev/disk/by-uuid/1234":
+				case "/dev/nvme0n1p2":
 					return "/dev/nvme0n1p2", nil
 				case "/sys/class/block/nvme0n1p2":
 					return "/sys/devices/pci0000:00/0000:00:01.0/nvme/nvme0/nvme0n1/nvme0n1p2", nil
@@ -101,10 +98,8 @@ func TestResolveMountPathToPhysicalDevice(t *testing.T) {
 			expected: "/dev/nvme0",
 		},
 		{
-			name: "nvme namespace without partition to controller",
-			mountsContent: `/dev/nvme0n1 /var/lib/longhorn ext4 rw,relatime 0 0
-		/dev/sda1 / ext4 rw,relatime 0 0`,
-			mountPath: "/var/lib/longhorn",
+			name:        "nvme namespace without partition to controller",
+			blockDevice: "/dev/nvme0n1",
 			evalSymlinksFn: func(s string) (string, error) {
 				switch s {
 				case "/dev/nvme0n1":
@@ -118,10 +113,8 @@ func TestResolveMountPathToPhysicalDevice(t *testing.T) {
 			expected: "/dev/nvme0",
 		},
 		{
-			name: "sda partition to base device",
-			mountsContent: `/dev/sda2 /var/lib/longhorn ext4 rw,relatime 0 0
-		/dev/sda1 / ext4 rw,relatime 0 0`,
-			mountPath: "/var/lib/longhorn",
+			name:        "sda partition to base device",
+			blockDevice: "/dev/sda2",
 			evalSymlinksFn: func(s string) (string, error) {
 				switch s {
 				case "/dev/sda2":
@@ -135,26 +128,54 @@ func TestResolveMountPathToPhysicalDevice(t *testing.T) {
 			expected: "/dev/sda",
 		},
 		{
-			name:          "eval symlinks error",
-			mountsContent: `/dev/invalid_symlink /var/lib/longhorn ext4 rw,relatime 0 0`,
-			mountPath:     "/var/lib/longhorn",
+			name:        "sda base device",
+			blockDevice: "/dev/sda",
 			evalSymlinksFn: func(s string) (string, error) {
-				return "", assert.AnError
+				switch s {
+				case "/dev/sda":
+					return "/dev/sda", nil
+				case "/sys/class/block/sda":
+					return "/sys/devices/pci0000:00/ahci/host0/target0:0:0/0:0:0:0/block/sda", nil
+				default:
+					return s, nil
+				}
+			},
+			expected: "/dev/sda",
+		},
+		{
+			name:        "eval symlinks error on device",
+			blockDevice: "/dev/invalid_symlink",
+			evalSymlinksFn: func(s string) (string, error) {
+				if s == "/dev/invalid_symlink" {
+					return "", assert.AnError
+				}
+				return s, nil
 			},
 			expectError:   true,
 			errorContains: "failed to resolve symlink",
+		},
+		{
+			name:        "eval symlinks error on sysfs",
+			blockDevice: "/dev/sda1",
+			evalSymlinksFn: func(s string) (string, error) {
+				switch s {
+				case "/dev/sda1":
+					return "/dev/sda1", nil
+				case "/sys/class/block/sda1":
+					return "", assert.AnError
+				default:
+					return s, nil
+				}
+			},
+			expectError:   true,
+			errorContains: "failed to resolve sysfs path",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tmpDir := t.TempDir()
-			mountsFile := filepath.Join(tmpDir, "mounts")
-			err := os.WriteFile(mountsFile, []byte(tt.mountsContent), 0644)
-			assert.NoError(t, err)
-
-			device, err := resolveMountPathToPhysicalDeviceWithDeps(
-				tt.mountPath, mountsFile, tt.evalSymlinksFn,
+			device, err := resolveBlockDeviceToPhysicalDeviceWithDeps(
+				tt.blockDevice, tt.evalSymlinksFn,
 			)
 
 			if tt.expectError {
