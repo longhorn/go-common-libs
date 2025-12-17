@@ -46,6 +46,14 @@ func findBlockDeviceForMountWithDeps(
 				return "", fmt.Errorf("mount path %s uses non-block device %q", mountPath, device)
 			}
 
+			// LVM device-mapper paths (e.g., /dev/mapper/... or /dev/dm-*) should be
+			// returned as-is. In containerized environments, the underlying dm-*
+			// backing devices may not be visible inside the container, so attempting
+			// to resolve them to a physical block device can fail.
+			if strings.HasPrefix(device, "/dev/mapper/") || strings.HasPrefix(device, "/dev/dm-") {
+				return device, nil
+			}
+
 			// Resolve device using the injected resolveDevice function.
 			// This handles special devices like /dev/root and symlinks consistently.
 			actualDev, err := resolveDevice(device)
