@@ -124,3 +124,29 @@ func testCaseGetSystemBlockDevices(t *testing.T) map[string]testCaseNamespaceMet
 		},
 	}
 }
+
+func testCaseResolveBlockDeviceToPhysicalDevice(t *testing.T) map[string]testCaseNamespaceMethods {
+	return map[string]testCaseNamespaceMethods{
+		"ResolveBlockDeviceToPhysicalDevice/Local": {
+			method: func(args ...interface{}) (interface{}, error) {
+				return ResolveBlockDeviceToPhysicalDevice("/dev/sda1")
+			},
+			mockResult: "/dev/sda",
+			expected:   "/dev/sda",
+		},
+		"ResolveBlockDeviceToPhysicalDevice/Failed to run": {
+			method: func(args ...interface{}) (interface{}, error) {
+				return ResolveBlockDeviceToPhysicalDevice("/dev/sda1")
+			},
+			mockError:   fmt.Errorf("failed"),
+			expectError: true,
+		},
+		"ResolveBlockDeviceToPhysicalDevice/Failed to cast result": {
+			method: func(args ...interface{}) (interface{}, error) {
+				return ResolveBlockDeviceToPhysicalDevice("/dev/sda1")
+			},
+			mockResult:  int(1),
+			expectError: true,
+		},
+	}
+}

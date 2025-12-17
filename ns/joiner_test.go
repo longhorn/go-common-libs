@@ -130,6 +130,7 @@ func TestNamespaceMethods(t *testing.T) {
 		testCaseSync(t),
 		testCaseGetOSDistro(t),
 		testCaseGetSystemBlockDevices(t),
+		testCaseResolveBlockDeviceToPhysicalDevice(t),
 		testCaseCopyDirectory(t),
 		testCaseCreateDirectory(t),
 		testCaseDeleteDirectory(t),
