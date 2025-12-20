@@ -125,7 +125,7 @@ github.com/kr/pretty
 # github.com/kr/text v0.2.0
 ## explicit
 github.com/kr/text
-# github.com/longhorn/types v0.0.0-20251207085945-9c40bd62daff
+# github.com/longhorn/types v0.0.0-20251218094636-43d032f49660
 ## explicit; go 1.24.0
 github.com/longhorn/types/pkg/generated/profilerrpc
 # github.com/mailru/easyjson v0.7.7
@@ -177,7 +177,7 @@ github.com/stretchr/testify/assert
 # github.com/yusufpapurcu/wmi v1.2.4
 ## explicit; go 1.16
 github.com/yusufpapurcu/wmi
-# golang.org/x/exp v0.0.0-20251209150349-8475f28825e9
+# golang.org/x/exp v0.0.0-20251219203646-944ab1f22d93
 ## explicit; go 1.24.0
 golang.org/x/exp/constraints
 # golang.org/x/net v0.46.1-0.20251013234738-63d1a5100f82
@@ -283,7 +283,7 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-# google.golang.org/protobuf v1.36.10
+# google.golang.org/protobuf v1.36.11
 ## explicit; go 1.23
 google.golang.org/protobuf/encoding/protojson
 google.golang.org/protobuf/encoding/prototext
