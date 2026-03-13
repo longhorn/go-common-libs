@@ -62,7 +62,9 @@ func TestLuksFormat(t *testing.T) {
 
 			nsexec.executor = &fake.Executor{}
 
-			output, err := nsexec.LuksFormat("", "", "", "", "", "", types.LuksTimeout)
+			option := &LuksFormatOptions{}
+
+			output, err := nsexec.LuksFormat("", "", option, types.LuksTimeout)
 			assert.Nil(t, err)
 			assert.Equal(t, "output", output)
 		})
