@@ -1,18 +1,12 @@
-TARGETS := $(shell ls dapper)
+.PHONY: validate test ci
+
+validate:
+	docker buildx build --target validate -f Dockerfile .
+
+test:
+	docker buildx build --target test-artifacts --output type=local,dest=. -f Dockerfile .
+
+ci:
+	docker buildx build --target ci-artifacts --output type=local,dest=. -f Dockerfile .
 
 .DEFAULT_GOAL := ci
-
-.PHONY: $(TARGETS)
-
-.dapper:
-	@echo Downloading dapper
-	@curl -sSfL https://releases.rancher.com/dapper/latest/dapper-`uname -s`-`uname -m` > .dapper
-	@chmod +x .dapper
-	@./.dapper -v
-
-$(TARGETS): .dapper
-	./.dapper $@
-
-deps: .dapper
-	./.dapper -d -m bind go mod vendor
-	./.dapper -d -m bind chown -R $$(id -u) vendor go.mod go.sum
