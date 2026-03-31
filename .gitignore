@@ -1,5 +1,4 @@
 *.test
-.dapper
 coverage.out
-Dockerfile.dapper*
-
+cscope*
+.dapper
