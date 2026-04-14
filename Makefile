@@ -1,18 +1,17 @@
-TARGETS := $(shell ls dapper)
+MACHINE := longhorn
+
+.PHONY: validate test ci
+
+buildx-machine:
+	@docker buildx create --name=$(MACHINE) --buildkitd-flags '--allow-insecure-entitlement security.insecure' 2>/dev/null || true
+
+validate:
+	docker buildx build --target validate -f Dockerfile .
+
+test: buildx-machine
+	docker buildx build --builder=$(MACHINE) --allow security.insecure --target test-artifacts --output type=local,dest=. -f Dockerfile .
+
+ci: buildx-machine
+	docker buildx build --builder=$(MACHINE) --allow security.insecure --target ci-artifacts --output type=local,dest=. -f Dockerfile .
 
 .DEFAULT_GOAL := ci
-
-.PHONY: $(TARGETS)
-
-.dapper:
-	@echo Downloading dapper
-	@curl -sSfL https://releases.rancher.com/dapper/latest/dapper-`uname -s`-`uname -m` > .dapper
-	@chmod +x .dapper
-	@./.dapper -v
-
-$(TARGETS): .dapper
-	./.dapper $@
-
-deps: .dapper
-	./.dapper -d -m bind go mod vendor
-	./.dapper -d -m bind chown -R $$(id -u) vendor go.mod go.sum
