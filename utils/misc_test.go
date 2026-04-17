@@ -522,6 +522,168 @@ func TestGetNumberFromMap(t *testing.T) {
 	})
 }
 
+func TestIsPkgVersionAtLeast(t *testing.T) {
+	testCases := map[string]struct {
+		currentVersion string
+		minimumVersion string
+		expected       bool
+		expectError    bool
+	}{
+		"Equal versions": {
+			currentVersion: "1.2.3",
+			minimumVersion: "1.2.3",
+			expected:       true,
+		},
+		"Current version is greater (patch)": {
+			currentVersion: "1.2.4",
+			minimumVersion: "1.2.3",
+			expected:       true,
+		},
+		"Current version is greater (minor)": {
+			currentVersion: "1.3.0",
+			minimumVersion: "1.2.3",
+			expected:       true,
+		},
+		"Current version is greater (major)": {
+			currentVersion: "2.0.0",
+			minimumVersion: "1.9.9",
+			expected:       true,
+		},
+		"Current version is less (patch)": {
+			currentVersion: "1.2.2",
+			minimumVersion: "1.2.3",
+			expected:       false,
+		},
+		"Current version is less (minor)": {
+			currentVersion: "1.1.9",
+			minimumVersion: "1.2.0",
+			expected:       false,
+		},
+		"Current version is less (major)": {
+			currentVersion: "1.9.9",
+			minimumVersion: "2.0.0",
+			expected:       false,
+		},
+		"Current version with pre-release 1": {
+			currentVersion: "1.2.3-distro",
+			minimumVersion: "1.2.3",
+			expected:       false,
+		},
+		"Current version with pre-release 2": {
+			currentVersion: "1.2.4-distro",
+			minimumVersion: "1.2.3",
+			expected:       true,
+		},
+		"Minimum version with pre-release 1": {
+			currentVersion: "1.2.3",
+			minimumVersion: "1.2.3-distro",
+			expected:       true,
+		},
+		"Minimum version with pre-release 2": {
+			currentVersion: "1.2.3",
+			minimumVersion: "1.2.4-distro",
+			expected:       false,
+		},
+		"Invalid current version 1": {
+			currentVersion: "not-a-version",
+			minimumVersion: "1.0.0",
+			expected:       false,
+			expectError:    true,
+		},
+		"Invalid current version 2": {
+			currentVersion: "1.2.3 distro",
+			minimumVersion: "1.2.3",
+			expected:       false,
+			expectError:    true,
+		},
+		"Invalid minimum version 1": {
+			currentVersion: "1.0.0",
+			minimumVersion: "not-a-version",
+			expected:       false,
+			expectError:    true,
+		},
+		"Invalid minimum version 2": {
+			currentVersion: "1.2.3",
+			minimumVersion: "1.2.3 distro",
+			expected:       false,
+			expectError:    true,
+		},
+		"Both versions invalid": {
+			currentVersion: "abc",
+			minimumVersion: "xyz",
+			expected:       false,
+			expectError:    true,
+		},
+	}
+
+	for testName, tc := range testCases {
+		t.Run(testName, func(t *testing.T) {
+			result, err := IsVersionAtLeast(tc.currentVersion, tc.minimumVersion)
+			if tc.expectError {
+				assert.Error(t, err, Commentf(test.ErrResultFmt, testName))
+			} else {
+				assert.NoError(t, err, Commentf(test.ErrResultFmt, testName))
+				assert.Equal(t, tc.expected, result, Commentf(test.ErrResultFmt, testName))
+			}
+		})
+	}
+}
+
+func TestIsVersionValid(t *testing.T) {
+	testCases := map[string]struct {
+		versionStr string
+		expected   bool
+	}{
+		"Valid semver": {
+			versionStr: "1.2.3",
+			expected:   true,
+		},
+		"Valid semver with pre-release": {
+			versionStr: "1.2.3-distro",
+			expected:   true,
+		},
+		"Valid semver major only (not semver)": {
+			versionStr: "1",
+			expected:   false,
+		},
+		"Valid semver major.minor only (not semver)": {
+			versionStr: "1.2",
+			expected:   false,
+		},
+		"Valid semver with leading v": {
+			versionStr: "v1.2.3",
+			expected:   true,
+		},
+		"Valid semver zero version": {
+			versionStr: "0.0.0",
+			expected:   true,
+		},
+		"Invalid: empty string": {
+			versionStr: "",
+			expected:   false,
+		},
+		"Invalid: arbitrary text": {
+			versionStr: "not-a-version",
+			expected:   false,
+		},
+		"Invalid: version with spaces": {
+			versionStr: "1.2.3 distro",
+			expected:   false,
+		},
+		"Invalid: letters only": {
+			versionStr: "abc",
+			expected:   false,
+		},
+	}
+
+	for testName, tc := range testCases {
+		t.Run(testName, func(t *testing.T) {
+			result := IsVersionValid(tc.versionStr)
+			assert.Equal(t, tc.expected, result, Commentf(test.ErrResultFmt, testName))
+		})
+	}
+}
+
 func TestGetStringFromMap(t *testing.T) {
 	testCases := map[string]struct {
 		inputMap map[string]any
