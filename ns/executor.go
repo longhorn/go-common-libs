@@ -2,6 +2,7 @@ package ns
 
 import (
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -16,6 +17,10 @@ import (
 type Executor struct {
 	namespaces  []types.Namespace // The namespaces to enter.
 	nsDirectory string            // The directory of the namespace.
+	// processName and procDirectory are set when the executor is created and used
+	// to re-resolve the namespace path after a stale nsenter (e.g. iscsid PID change).
+	processName   string
+	procDirectory string
 
 	executor exec.ExecuteInterface // An interface for executing commands. This allows mocking for unit tests.
 }
@@ -33,9 +38,11 @@ func NewNamespaceExecutor(processName, procDirectory string, namespaces []types.
 	}
 
 	NamespaceExecutor := &Executor{
-		namespaces:  namespaces,
-		nsDirectory: nsDir,
-		executor:    exec.NewExecutor(),
+		namespaces:     namespaces,
+		nsDirectory:    nsDir,
+		processName:    processName,
+		procDirectory:  procDirectory,
+		executor:       exec.NewExecutor(),
 	}
 
 	if _, err := NamespaceExecutor.executor.Execute(nil, types.NsBinary, []string{"-V"}, types.ExecuteDefaultTimeout); err != nil {
@@ -68,20 +75,76 @@ func (nsexec *Executor) prepareCommandArgs(binary string, args, envs []string) [
 	return append(cmdArgs, args...)
 }
 
+func (nsexec *Executor) refreshNamespaceDirectory() error {
+	nsDir, err := proc.GetProcessNamespaceDirectory(nsexec.processName, nsexec.procDirectory)
+	if err != nil {
+		return err
+	}
+	nsexec.nsDirectory = nsDir
+	return nil
+}
+
+// isLikelyStaleNamespaceError is true when nsenter failed because the process
+// namespace path no longer exists (e.g. iscsid restarted and got a new PID).
+func isLikelyStaleNamespaceError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	if !strings.Contains(msg, types.NsBinary) {
+		return false
+	}
+	if !strings.Contains(msg, "/ns/") {
+		return false
+	}
+	// e.g. "nsenter: cannot open /host/proc/9134/ns/mnt: No such file or directory"
+	return strings.Contains(msg, "No such file or directory")
+}
+
 // Execute executes the command in the namespace. If NsDirectory is empty,
 // it will execute the command in the current namespace.
 func (nsexec *Executor) Execute(envs []string, binary string, args []string, timeout time.Duration) (string, error) {
+	out, err := nsexec.executor.Execute(nil, types.NsBinary, nsexec.prepareCommandArgs(binary, args, envs), timeout)
+	if err == nil {
+		return out, nil
+	}
+	if !isLikelyStaleNamespaceError(err) {
+		return out, err
+	}
+	if refreshErr := nsexec.refreshNamespaceDirectory(); refreshErr != nil {
+		return out, err
+	}
 	return nsexec.executor.Execute(nil, types.NsBinary, nsexec.prepareCommandArgs(binary, args, envs), timeout)
 }
 
 // ExecuteWithStdin executes the command in the namespace with stdin.
 // If NsDirectory is empty, it will execute the command in the current namespace.
 func (nsexec *Executor) ExecuteWithStdin(envs []string, binary string, args []string, stdinString string, timeout time.Duration) (string, error) {
+	out, err := nsexec.executor.ExecuteWithStdin(types.NsBinary, nsexec.prepareCommandArgs(binary, args, envs), stdinString, timeout)
+	if err == nil {
+		return out, nil
+	}
+	if !isLikelyStaleNamespaceError(err) {
+		return out, err
+	}
+	if refreshErr := nsexec.refreshNamespaceDirectory(); refreshErr != nil {
+		return out, err
+	}
 	return nsexec.executor.ExecuteWithStdin(types.NsBinary, nsexec.prepareCommandArgs(binary, args, envs), stdinString, timeout)
 }
 
 // ExecuteWithStdinPipe executes the command in the namespace with stdin pipe.
 // If NsDirectory is empty, it will execute the command in the current namespace.
 func (nsexec *Executor) ExecuteWithStdinPipe(envs []string, binary string, args []string, stdinString string, timeout time.Duration) (string, error) {
+	out, err := nsexec.executor.ExecuteWithStdinPipe(types.NsBinary, nsexec.prepareCommandArgs(binary, args, envs), stdinString, timeout)
+	if err == nil {
+		return out, nil
+	}
+	if !isLikelyStaleNamespaceError(err) {
+		return out, err
+	}
+	if refreshErr := nsexec.refreshNamespaceDirectory(); refreshErr != nil {
+		return out, err
+	}
 	return nsexec.executor.ExecuteWithStdinPipe(types.NsBinary, nsexec.prepareCommandArgs(binary, args, envs), stdinString, timeout)
 }
