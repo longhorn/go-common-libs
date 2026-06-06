@@ -6,13 +6,14 @@ require (
 	github.com/RoaringBitmap/roaring v1.9.4
 	github.com/c9s/goprocinfo v0.0.0-20210130143923-c95fcf8c64a8
 	github.com/cockroachdb/errors v1.12.0
+	github.com/gofrs/flock v0.13.0
 	github.com/google/uuid v1.6.0
 	github.com/longhorn/types v0.0.0-20260602074022-85db2ba11d69
 	github.com/mitchellh/go-ps v1.0.0
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/sirupsen/logrus v1.9.4
-	github.com/stretchr/testify v1.10.0
-	golang.org/x/exp v0.0.0-20260603202125-055de637280b
+	github.com/stretchr/testify v1.11.1
+	golang.org/x/exp v0.0.0-20260508232706-74f9aab9d74a
 	golang.org/x/sys v0.42.0
 	google.golang.org/grpc v1.81.1
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
