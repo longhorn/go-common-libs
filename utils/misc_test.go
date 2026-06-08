@@ -1,12 +1,12 @@
 package utils
 
 import (
+	"cmp"
 	"math"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/exp/constraints"
 	. "gopkg.in/check.v1"
 
 	"github.com/longhorn/go-common-libs/test"
@@ -291,13 +291,13 @@ func TestSortKeys(t *testing.T) {
 	runTestSortKeys(t, uint64TestCases)
 }
 
-type testCaseSortKeys[K constraints.Ordered, V any] struct {
+type testCaseSortKeys[K cmp.Ordered, V any] struct {
 	inputMap    map[K]V
 	expected    []K
 	expectError bool
 }
 
-func runTestSortKeys[K constraints.Ordered, V any](t *testing.T, testCases map[string]testCaseSortKeys[K, V]) {
+func runTestSortKeys[K cmp.Ordered, V any](t *testing.T, testCases map[string]testCaseSortKeys[K, V]) {
 	for testName, tc := range testCases {
 		t.Run(testName, func(t *testing.T) {
 			result, err := SortKeys(tc.inputMap)
