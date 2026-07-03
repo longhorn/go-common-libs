@@ -29,6 +29,20 @@ func TestIsMountPointReadOnly(t *testing.T) {
 			},
 			expected: false,
 		},
+		"EmergencyReadOnly": {
+			// ext4 emergency read-only (kernel >= v6.12): the mount still
+			// shows "rw" but writes fail with EROFS.
+			input: mount.MountPoint{
+				Opts: []string{"rw", "seclabel", "relatime", "emergency_ro"},
+			},
+			expected: true,
+		},
+		"ReadWriteMultipleOpts": {
+			input: mount.MountPoint{
+				Opts: []string{"rw", "seclabel", "relatime"},
+			},
+			expected: false,
+		},
 		"Empty": {
 			input: mount.MountPoint{
 				Opts: []string{},
