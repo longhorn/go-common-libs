@@ -237,6 +237,21 @@ func IsVersionAtLeast(currentVersion, minimumVersion string) (bool, error) {
 	return parsedVer.AtLeast(minVer), nil
 }
 
+// IsVersionGreaterThan checks if the current version is greater than the minimum version.
+func IsVersionGreaterThan(currentVersion, minimumVersion string) (bool, error) {
+	parsedVer, err := version.ParseSemantic(currentVersion)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to parse testing version %q", currentVersion)
+	}
+
+	minVer, err := version.ParseSemantic(minimumVersion)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to parse minimum version %q", minimumVersion)
+	}
+
+	return parsedVer.GreaterThan(minVer), nil
+}
+
 func IsVersionValid(versionStr string) bool {
 	_, err := version.ParseSemantic(versionStr)
 	return err == nil
