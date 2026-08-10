@@ -185,7 +185,7 @@ func GetNumberFromMap[T GetNumberFromMapSupportedTypes](mapObj map[string]any, k
 
 	switch v := value.(type) {
 	case float64:
-		// Clamp to zero if negative or beyond T’s max range.
+		// Clamp to zero if negative or beyond T's max range.
 		if v < 0 || v > float64(^zero) {
 			return zero
 		}
@@ -234,7 +234,7 @@ func IsVersionAtLeast(currentVersion, minimumVersion string) (bool, error) {
 		return false, errors.Wrapf(err, "failed to parse minimum version %q", minimumVersion)
 	}
 
-	return parsedVer.AtLeast(minVer), nil
+	return !parsedVer.LessThan(minVer), nil
 }
 
 func IsVersionValid(versionStr string) bool {
