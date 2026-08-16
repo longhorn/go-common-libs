@@ -579,6 +579,43 @@ func TestSyncFile(t *testing.T) {
 	}
 }
 
+func TestFsyncDir(t *testing.T) {
+	fakeDir := fake.CreateTempDirectory("", t)
+	defer func() {
+		_ = os.RemoveAll(fakeDir)
+	}()
+
+	type testCase struct {
+		isDirExist bool
+
+		expectError bool
+	}
+	testCases := map[string]testCase{
+		"Existing directory": {
+			isDirExist: true,
+		},
+		"Not existing directory": {
+			isDirExist:  false,
+			expectError: true,
+		},
+	}
+	for testName, testCase := range testCases {
+		t.Run(testName, func(t *testing.T) {
+			dirPath := filepath.Join(fakeDir, "not-exist")
+			if testCase.isDirExist {
+				dirPath = fakeDir
+			}
+
+			err := FsyncDir(dirPath)
+			if testCase.expectError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName, err))
+		})
+	}
+}
+
 func TestGetDiskStat(t *testing.T) {
 	fakeDir := fake.CreateTempDirectory("", t)
 	defer func() {
