@@ -83,6 +83,24 @@ func TestGetLocalIPv4fromInterface(t *testing.T) {
 	}
 }
 
+func TestGetLocalIPFromInterface(t *testing.T) {
+	interfaces, err := net.Interfaces()
+	assert.Nil(t, err)
+
+	for _, iface := range interfaces {
+		ip, err := GetLocalIPFromInterface(iface.Name)
+		if err != nil {
+			assert.True(t, strings.Contains(err.Error(), "doesn't have an IPv4 or a global unicast IPv6 address"))
+			continue
+		}
+
+		parsed := net.ParseIP(ip)
+		assert.NotNil(t, parsed, Commentf("interface %v returned an unparsable IP %q", iface.Name, ip))
+		assert.True(t, parsed.To4() != nil || parsed.IsGlobalUnicast(),
+			Commentf("interface %v returned a non-routable IPv6 address %q", iface.Name, ip))
+	}
+}
+
 func TestGetAnyExternalIP(t *testing.T) {
 	type testCase struct {
 		host     string
@@ -100,7 +118,7 @@ func TestGetAnyExternalIP(t *testing.T) {
 		t.Run(testName, func(t *testing.T) {
 			ip, err := GetAnyExternalIP()
 			assert.Nil(t, err, Commentf(test.ErrErrorFmt, testName, err))
-			assert.True(t, isIPv4(ip), Commentf(test.ErrResultFmt, testName))
+			assert.NotNil(t, net.ParseIP(ip), Commentf(test.ErrResultFmt, testName))
 		})
 	}
 }
