@@ -1,6 +1,7 @@
 package net
 
 import (
+	"errors"
 	"net"
 	"strings"
 	"testing"
@@ -10,6 +11,100 @@ import (
 
 	"github.com/longhorn/go-common-libs/test"
 )
+
+func TestGetAnyExternalIPSelection(t *testing.T) {
+	errListInterfaces := errors.New("failed to list interfaces")
+	errListAddrs := errors.New("failed to list addresses")
+
+	testCases := []struct {
+		name        string
+		interfaces  []net.Interface
+		addrs       map[int][]net.Addr
+		listErr     error
+		addrErr     map[int]error
+		expected    string
+		wantErr     bool
+		expectedErr error
+	}{
+		{
+			name: "prefers IPv4 over IPv6",
+			interfaces: []net.Interface{
+				{Index: 1, Flags: net.FlagUp},
+				{Index: 2, Flags: net.FlagUp},
+			},
+			addrs: map[int][]net.Addr{
+				1: {&net.IPNet{IP: net.ParseIP("2001:db8::10")}},
+				2: {&net.IPNet{IP: net.ParseIP("192.0.2.10")}},
+			},
+			expected: "192.0.2.10",
+		},
+		{
+			name:       "falls back to global unicast IPv6",
+			interfaces: []net.Interface{{Index: 1, Flags: net.FlagUp}},
+			addrs: map[int][]net.Addr{
+				1: {&net.IPAddr{IP: net.ParseIP("fd00:168:1::2")}},
+			},
+			expected: "fd00:168:1::2",
+		},
+		{
+			name:       "rejects unusable IPv6 addresses",
+			interfaces: []net.Interface{{Index: 1, Flags: net.FlagUp}},
+			addrs: map[int][]net.Addr{
+				1: {
+					&net.IPNet{IP: net.ParseIP("fe80::1")},
+					&net.IPNet{IP: net.ParseIP("ff02::1")},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "skips down and loopback interfaces",
+			interfaces: []net.Interface{
+				{Index: 1},
+				{Index: 2, Flags: net.FlagUp | net.FlagLoopback},
+			},
+			addrs: map[int][]net.Addr{
+				1: {&net.IPNet{IP: net.ParseIP("192.0.2.10")}},
+				2: {&net.IPNet{IP: net.ParseIP("2001:db8::10")}},
+			},
+			wantErr: true,
+		},
+		{
+			name:        "propagates interface list error",
+			listErr:     errListInterfaces,
+			expectedErr: errListInterfaces,
+		},
+		{
+			name:        "propagates address list error",
+			interfaces:  []net.Interface{{Index: 1, Flags: net.FlagUp}},
+			addrErr:     map[int]error{1: errListAddrs},
+			expectedErr: errListAddrs,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			actual, err := getAnyExternalIP(
+				func() ([]net.Interface, error) {
+					return testCase.interfaces, testCase.listErr
+				},
+				func(iface net.Interface) ([]net.Addr, error) {
+					return testCase.addrs[iface.Index], testCase.addrErr[iface.Index]
+				},
+			)
+
+			assert.Equal(t, testCase.expected, actual)
+			switch {
+			case testCase.expectedErr != nil:
+				assert.ErrorIs(t, err, testCase.expectedErr)
+			case testCase.wantErr:
+				assert.Error(t, err)
+			default:
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
 
 func TestIsLoopbackHost(t *testing.T) {
 	type testCase struct {
