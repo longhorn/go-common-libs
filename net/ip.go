@@ -113,25 +113,34 @@ func IsLoopbackHost(host string) bool {
 	return true
 }
 
-// GetAnyExternalIP returns any external IP address. IPv4 is preferred, and a
+// GetAnyExternalIP returns an external IP address. IPv4 is preferred, and a
 // global unicast IPv6 address is returned when no IPv4 address is available.
 func GetAnyExternalIP() (string, error) {
-	ifaces, err := net.Interfaces()
+	return getAnyExternalIP(net.Interfaces, func(iface net.Interface) ([]net.Addr, error) {
+		return iface.Addrs()
+	})
+}
+
+func getAnyExternalIP(
+	listInterfaces func() ([]net.Interface, error),
+	listAddrs func(net.Interface) ([]net.Addr, error),
+) (string, error) {
+	ifaces, err := listInterfaces()
 	if err != nil {
 		return "", err
 	}
 
 	var ipv6 net.IP
+
 	for _, iface := range ifaces {
 		if iface.Flags&net.FlagUp == 0 {
-			continue // interface down
+			continue
 		}
-
 		if iface.Flags&net.FlagLoopback != 0 {
-			continue // loopback interface
+			continue
 		}
 
-		addrs, err := iface.Addrs()
+		addrs, err := listAddrs(iface)
 		if err != nil {
 			return "", err
 		}
