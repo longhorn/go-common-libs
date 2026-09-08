@@ -297,9 +297,9 @@ func SelectIPByNetworkPreference(storageNetworkPresent bool, storageIPs []string
 	return "", errors.Errorf("no usable global-unicast address in %s candidates %v", source, candidates)
 }
 
-// GetIPForPodByNetwork returns the pod IP selected from the storage network,
+// GetPreferredPodIP returns the pod IP selected from the storage network,
 // falling back to the primary pod interface when the storage network is absent.
-func GetIPForPodByNetwork() (ip string, err error) {
+func GetPreferredPodIP() (ip string, err error) {
 	return GetIPForPodByNetworkAndFamily(IPFamilyUnspecified)
 }
 
@@ -307,10 +307,10 @@ func GetIPForPodByNetwork() (ip string, err error) {
 // back to the primary pod interface when the storage network is absent.
 //
 // Deprecated: GetIPForPod has a misleading generic name and retains
-// unspecified-family selection. Use GetIPForPodByNetwork for the same behavior,
+// unspecified-family selection. Use GetPreferredPodIP for the same behavior,
 // or GetIPForPodByNetworkAndFamily for explicit family selection.
 func GetIPForPod() (ip string, err error) {
-	return GetIPForPodByNetwork()
+	return GetPreferredPodIP()
 }
 
 // GetIPForPodByNetworkAndFamily returns the pod IP for the requested address
