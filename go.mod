@@ -10,6 +10,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/longhorn/types v0.0.0-20260709032252-3d0a3cd8f06f
 	github.com/mitchellh/go-ps v1.0.0
+	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/sirupsen/logrus v1.10.2
 	github.com/stretchr/testify v1.12.1
@@ -50,7 +51,6 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
