@@ -11,7 +11,7 @@ require (
 	github.com/longhorn/types v0.0.0-20260709032252-3d0a3cd8f06f
 	github.com/mitchellh/go-ps v1.0.0
 	github.com/shirou/gopsutil/v3 v3.24.5
-	github.com/sirupsen/logrus v1.9.4
+	github.com/sirupsen/logrus v1.10.2
 	github.com/stretchr/testify v1.12.1
 	golang.org/x/sys v0.47.0
 	google.golang.org/grpc v1.83.2
