@@ -2,8 +2,10 @@ package proc
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
+	"github.com/mitchellh/go-ps"
 	"github.com/stretchr/testify/assert"
 	. "gopkg.in/check.v1"
 
@@ -84,23 +86,45 @@ func TestGetProcessAncestorNamespaceDirectory(t *testing.T) {
 			result, err := GetProcessAncestorNamespaceDirectory(testCase.process, testCase.procPath)
 			assert.NoError(t, err, Commentf(test.ErrErrorFmt, testName, err))
 
+			// Other processes with the same name may be running concurrently
+			// (e.g. "go vet" or "golangci-lint" in a parallel CI stage), so
+			// compare against the actual ancestor of the test process.
+			ancestorPid := findAncestorPIDByName(t, testCase.process)
 			if testCase.expected == "" {
-				p, err := FindProcessByName(testCase.process)
-				assert.NoError(t, err)
-				testCase.expected = fmt.Sprintf("/proc/%d/ns", p.Pid)
+				testCase.expected = fmt.Sprintf("/proc/%d/ns", ancestorPid)
 			}
 
 			assert.Equal(t, testCase.expected, result, Commentf(test.ErrResultFmt, testName))
 
-			ps, err := FindProcessByCmdline(testCase.process)
+			procs, err := FindProcessByCmdline(testCase.process)
 			assert.NoError(t, err)
-			assert.Equal(t, 1, len(ps))
-			if len(ps) > 0 {
-				assert.Equal(t, fmt.Sprintf("/proc/%d/ns", ps[0].Pid), result, Commentf(test.ErrResultFmt, testName))
+			pids := make([]int, 0, len(procs))
+			for _, p := range procs {
+				pids = append(pids, p.Pid)
 			}
+			assert.Contains(t, pids, ancestorPid)
 		})
 
 	}
+}
+
+// findAncestorPIDByName returns the PID of the closest ancestor of the current
+// process whose executable has the given name.
+func findAncestorPIDByName(t *testing.T, name string) int {
+	t.Helper()
+
+	for pid := os.Getppid(); pid > 0; {
+		p, err := ps.FindProcess(pid)
+		if !assert.NoError(t, err) || p == nil {
+			break
+		}
+		if p.Executable() == name {
+			return pid
+		}
+		pid = p.PPid()
+	}
+	t.Fatalf("no ancestor process named %q found", name)
+	return 0
 }
 
 func TestGetProcessNamespaceDirectory(t *testing.T) {
