@@ -217,11 +217,9 @@ func TestExecuteTimeoutFallbackKillProcess(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Greater(t, pid, 0)
 
-	// Give the kill a moment to be delivered.
-	time.Sleep(100 * time.Millisecond)
-
 	// Verify that the command PID was terminated by fallback cmd.Process.Kill()
 	// even though the process changed its process group.
-	err = syscall.Kill(pid, 0)
-	assert.Error(t, err, "command PID should be terminated after timeout")
+	assert.Eventually(t, func() bool {
+		return syscall.Kill(pid, 0) == syscall.ESRCH
+	}, time.Second, 10*time.Millisecond, "command PID should be terminated after timeout")
 }
